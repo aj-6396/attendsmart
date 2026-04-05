@@ -17,7 +17,7 @@ export default defineConfig(({mode}) => {
           name: 'AttendSmart',      // Change this to your app's name
           short_name: 'AttendSmart', // Change this to your app's short name
           description: 'A smart attendance management system for educational institutions.', // Change this to your app's description
-          theme_color: '#ffffff',     // Change to match your brand color
+          theme_color: '##1e2bdb',     // Change to match your brand color
           icons: [
             {
               src: 'pwa-192x192.png',
