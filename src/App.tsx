@@ -196,9 +196,18 @@ export default function App() {
         })
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Registration failed.');
+     const text = await response.text();
+      let data: any = {};
+      
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error("Raw server response:", text);
+        throw new Error(`Server connection error (${response.status}). Please try again.`);
+      }
 
+      if (!response.ok) throw new Error(data.error || 'Registration failed.');
+      // ---
       // 2. Auto-login after successful registration
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email,
