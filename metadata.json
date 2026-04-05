@@ -1,0 +1,5 @@
+{
+  "name": "Student Attendance Monitoring App",
+  "description": "A secure attendance tracking system with OTP and geo-location validation.",
+  "requestFramePermissions": ["geolocation"]
+}
