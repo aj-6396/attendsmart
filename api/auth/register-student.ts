@@ -26,7 +26,7 @@ export default async function handler(req: any, res: any) {
 
     // Validate inputs
     if (!/^\d{6}$/.test(trimmedEnrollment)) return res.status(400).json({ error: "Enrollment Number must be exactly 6 digits" });
-    if (!/^[a-zA-Z0-9]{10}$/.test(trimmedExamRoll)) return res.status(400).json({ error: "Examination Roll Number must be 10 characters" });
+    if (!/^[a-zA-Z0-9]{11}$/.test(trimmedExamRoll)) return res.status(400).json({ error: "Examination Roll Number must be 11 characters" });
     if (!/^\d{6}$/.test(password)) return res.status(400).json({ error: "Password must be exactly 6 digits" });
 
     // Create Auth User
