@@ -485,28 +485,28 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="glass-card overflow-hidden"
                   >
-                    <div className="bg-gradient-to-r from-[--color-primary] to-[--color-secondary] p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="bg-gradient-to-r from-green-400 to-yellow-400 p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
                       <div>
                         <p className="text-white/80 text-sm font-medium uppercase tracking-wider mb-1">Current OTP</p>
                         <h3 className="otp-display">{activeSession.otp}</h3>
                       </div>
                       <div className="flex flex-wrap gap-4">
-                        <div className="icon-box--md icon-box--primary">
-                          <MapPin className="w-5 h-5" />
+                        <div className="session-info-box">
+                          <MapPin className="w-5 h-5 text-slate-700" />
                           <div>
-                            <p className="text-[10px] text-white/80 uppercase font-bold">Accuracy</p>
-                            <p className="font-mono font-bold text-white">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : 'N/A'}</p>
+                            <p className="text-[10px] text-slate-700 uppercase font-bold">Accuracy</p>
+                            <p className="font-mono font-bold text-slate-700">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : 'N/A'}</p>
                           </div>
                         </div>
-                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center gap-3">
-                          <Clock className="w-5 h-5 text-indigo-200" />
+                        <div className="session-info-box">
+                          <Clock className="w-5 h-5 text-slate-700" />
                           <div>
                             <p className="text-[10px] text-slate-700 uppercase font-bold">Expires At</p>
                             <p className="font-mono font-bold text-slate-700">{format(new Date(activeSession.expires_at), 'HH:mm')}</p>
                           </div>
                         </div>
-                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center gap-3">
-                          <Users className="w-5 h-5 text-indigo-200" />
+                        <div className="session-info-box">
+                          <Users className="w-5 h-5 text-slate-700" />
                           <div>
                             <p className="text-[10px] text-slate-700 uppercase font-bold">Present</p>
                             <p className="font-mono font-bold text-slate-700">{attendance.length}</p>
