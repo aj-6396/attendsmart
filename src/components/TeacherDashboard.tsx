@@ -501,15 +501,15 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
                         <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center gap-3">
                           <Clock className="w-5 h-5 text-indigo-200" />
                           <div>
-                            <p className="text-[10px] text-indigo-200 uppercase font-bold">Expires At</p>
-                            <p className="font-mono font-bold">{format(new Date(activeSession.expires_at), 'HH:mm')}</p>
+                            <p className="text-[10px] text-slate-700 uppercase font-bold">Expires At</p>
+                            <p className="font-mono font-bold text-slate-700">{format(new Date(activeSession.expires_at), 'HH:mm')}</p>
                           </div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center gap-3">
                           <Users className="w-5 h-5 text-indigo-200" />
                           <div>
-                            <p className="text-[10px] text-indigo-200 uppercase font-bold">Present</p>
-                            <p className="font-mono font-bold">{attendance.length}</p>
+                            <p className="text-[10px] text-slate-700 uppercase font-bold">Present</p>
+                            <p className="font-mono font-bold text-slate-700">{attendance.length}</p>
                           </div>
                         </div>
                       </div>

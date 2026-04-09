@@ -273,7 +273,7 @@
 
   /* OTP Display */
   .otp-display {
-    @apply text-4xl font-black tracking-[12px] text-[--color-primary];
+    @apply text-4xl font-black tracking-[12px] text-[--color-text-primary];
   }
 
   /* Gradient Text */
