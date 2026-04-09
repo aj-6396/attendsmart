@@ -1,21 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { GraduationCap, BookOpen, ShieldCheck } from 'lucide-react';
+import { GraduationCap, BookOpen, ShieldCheck, Sun, Moon } from 'lucide-react';
 
 interface RoleSelectionProps {
   onSelectRole: (role: 'student' | 'teacher') => void;
 }
 
 export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark' ||
+        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6">
-      <div className="w-full max-w-2xl mb-10 glass-card p-4 flex items-center gap-3 border border-[--color-glass-border] bg-white/10 shadow-xl">
-        <div className="icon-box--sm icon-box--primary">
-          <ShieldCheck className="w-4 h-4 text-white" />
+      <div className="w-full max-w-2xl mb-10 glass-card p-4 flex items-center justify-between border border-[--color-glass-border] bg-white/10 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="icon-box--sm icon-box--primary">
+            <ShieldCheck className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-xl sm:text-2xl font-black gradient-text-ybg tracking-tight">
+            AttendSmart
+          </span>
         </div>
-        <span className="text-xl sm:text-2xl font-black text-[--color-text-primary] tracking-tight">
-          AttendSmart
-        </span>
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="icon-btn"
+          title="Toggle theme"
+        >
+          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
       </div>
 
       {/* Title Section */}

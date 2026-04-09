@@ -28,6 +28,28 @@
     --color-glass-border: rgba(25, 118, 210, 0.2);
   }
 
+  .dark {
+    /* Dark Mode Colors - Darker shades of gradients */
+    --color-primary: #1E40AF; /* Darker blue */
+    --color-secondary: #4C1D95; /* Darker purple */
+    --color-accent: #7C3AED; /* Darker violet */
+    --color-success: #059669; /* Darker green */
+    --color-error: #DC2626; /* Darker red */
+    --color-warning: #D97706; /* Darker orange */
+    
+    /* Dark Background */
+    --color-bg: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+    --color-surface: rgba(30, 41, 59, 0.8);
+    
+    /* Light Text Colors for Dark Background */
+    --color-text-primary: #F1F5F9;
+    --color-text-secondary: #CBD5E1;
+    --color-text-hint: #94A3B8;
+    
+    /* Glass & Borders for Dark Mode */
+    --color-glass-border: rgba(148, 163, 184, 0.2);
+  }
+
   * {
     @apply box-border;
   }
@@ -47,7 +69,7 @@
 }
 
 @layer components {
-  /* Animated Background - Subtle for Light Theme */
+  /* Animated Background */
   .animated-bg {
     @apply fixed inset-0 z-0 overflow-hidden;
     background: var(--color-bg);
@@ -72,10 +94,22 @@
     animation-delay: -4s;
   }
 
+  .dark .animated-bg::before {
+    background: radial-gradient(circle, rgba(30, 64, 175, 0.12), transparent);
+  }
+
+  .dark .animated-bg::after {
+    background: radial-gradient(circle, rgba(76, 29, 149, 0.1), transparent);
+  }
+
   .dot-grid {
     @apply fixed inset-0 z-0 pointer-events-none;
     background-image: radial-gradient(circle, rgba(25, 118, 210, 0.1) 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+
+  .dark .dot-grid {
+    background-image: radial-gradient(circle, rgba(148, 163, 184, 0.15) 1px, transparent 1px);
   }
 
   /* Page Container */
@@ -87,21 +121,25 @@
     @apply w-full max-w-md mx-auto px-6 py-8;
   }
 
-  /* Glass Card - Adjusted for Light Theme */
+  /* Glass Card */
   .glass-card {
     @apply relative backdrop-blur-[20px] border border-[--color-glass-border] rounded-[20px] p-5 shadow-xl;
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--color-surface);
   }
 
   .glass-card-hover {
     @apply relative backdrop-blur-[20px] border border-[--color-glass-border] rounded-[20px] p-5 shadow-xl transition-all duration-300 hover:shadow-2xl;
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--color-surface);
   }
 
   .glass-card--success {
     @apply relative backdrop-blur-[20px] border border-[--color-glass-border] rounded-[20px] p-5 shadow-xl;
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--color-surface);
     border-color: rgba(0, 212, 170, 0.3);
+  }
+
+  .dark .glass-card--success {
+    border-color: rgba(5, 150, 105, 0.3);
   }
 
   .glass-card--warning {
@@ -258,13 +296,17 @@
     background: rgba(255, 255, 255, 0.6);
   }
 
-  /* Role Card - Adjusted for Light Theme */
-  .role-card {
-    @apply flex items-center gap-5 p-6 cursor-pointer transition-transform duration-150 rounded-[20px] relative backdrop-blur-[20px] border border-[--color-glass-border] shadow-xl transition-all duration-300 hover:shadow-2xl;
-    background: rgba(255, 255, 255, 0.7);
+  .dark .icon-btn {
+    background: rgba(30, 41, 59, 0.6);
   }
 
-  /* Action Card - Adjusted for Light Theme */
+  /* Role Card */
+  .role-card {
+    @apply flex items-center gap-5 p-6 cursor-pointer transition-transform duration-150 rounded-[20px] relative backdrop-blur-[20px] border border-[--color-glass-border] shadow-xl transition-all duration-300 hover:shadow-2xl;
+    background: var(--color-surface);
+  }
+
+  /* Action Card */
   .action-card {
     @apply flex items-center gap-4 px-5 py-4 cursor-pointer relative backdrop-blur-[20px] border border-[--color-glass-border] rounded-[20px] shadow-xl;
     background: rgba(255, 255, 255, 0.7);
@@ -284,6 +326,21 @@
   /* Gradient Text */
   .gradient-text {
     background: linear-gradient(135deg, #4FACFE, #00F2FE);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Yellow-Blue-Green Gradient Text */
+  .gradient-text-ybg {
+    background: linear-gradient(135deg, #FFD700 0%, #4FACFE 50%, #00D4AA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-icon-red {
+    background: linear-gradient(135deg, #F87171 0%, #DC2626 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -416,6 +473,10 @@
   .icon-btn {
     @apply w-11 h-11 border border-[--color-glass-border] rounded-[12px] flex items-center justify-center cursor-pointer text-[--color-text-secondary] transition-all duration-200;
     background: rgba(255, 255, 255, 0.7);
+  }
+
+  .dark .icon-btn {
+    background: rgba(30, 41, 59, 0.7);
   }
 
   /* Success Circle */

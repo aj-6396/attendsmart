@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
-import { LogIn, LogOut, User as UserIcon, ShieldCheck, GraduationCap, Loader2, AlertCircle, Sun, Moon, CheckCircle2, User } from 'lucide-react';
+import { LogIn, LogOut, User as UserIcon, ShieldCheck, GraduationCap, Loader2, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import TeacherDashboard from './components/TeacherDashboard';
@@ -42,23 +42,6 @@ export default function App() {
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | null>(null);
   const [loginType, setLoginType] = useState<UserRole>('student');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' || 
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
 
   // Form states
   const [enrollmentNo, setEnrollmentNo] = useState('');
@@ -584,16 +567,11 @@ export default function App() {
             <div className="icon-box--md icon-box--primary">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-black text-[--color-text-primary] tracking-tight hidden sm:block">AttendSmart</span>
           </div>
 
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="icon-btn"
-            title="Toggle theme"
-          >
-            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
+          <div className="flex-1 text-center">
+            <span className="text-xl font-black gradient-text-ybg tracking-tight">AttendSmart</span>
+          </div>
 
           <button
             onClick={handleLogout}
