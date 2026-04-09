@@ -181,19 +181,19 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
       {(error || success) && (
         <div className="fixed top-20 right-4 z-[60] max-w-sm w-full animate-in slide-in-from-right">
           {error && (
-            <div className="bg-white dark:bg-slate-900 border-l-4 border-red-500 shadow-xl p-4 rounded-r-xl flex items-center gap-3 border border-slate-100 dark:border-slate-800">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              <p className="text-sm text-slate-700 dark:text-slate-300">{error}</p>
-              <button onClick={() => setError(null)} className="ml-auto text-slate-400 hover:text-slate-600">
+            <div className="alert alert--error">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+              <button onClick={() => setError(null)} className="ml-auto text-[--color-text-secondary] hover:text-[--color-text-primary]">
                 <X className="w-4 h-4" />
               </button>
             </div>
           )}
           {success && (
-            <div className="bg-white dark:bg-slate-900 border-l-4 border-green-500 shadow-xl p-4 rounded-r-xl flex items-center gap-3 mt-2 border border-slate-100 dark:border-slate-800">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
-              <p className="text-sm text-slate-700 dark:text-slate-300">{success}</p>
-              <button onClick={() => setSuccess(null)} className="ml-auto text-slate-400 hover:text-slate-600">
+            <div className="glass-card--success border-l-4 p-4 flex items-center gap-3 mt-2">
+              <CheckCircle2 className="w-5 h-5 text-[--color-success] flex-shrink-0" />
+              <p className="text-sm text-[--color-success]">{success}</p>
+              <button onClick={() => setSuccess(null)} className="ml-auto text-[--color-text-secondary] hover:text-[--color-text-primary]">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -204,47 +204,47 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Students', value: stats?.students || 0, icon: Users, color: 'bg-blue-500', trend: '+12%' },
-          { label: 'Total Teachers', value: stats?.teachers || 0, icon: ShieldCheck, color: 'bg-indigo-500', trend: '+2' },
-          { label: 'Total Sessions', value: stats?.sessions || 0, icon: Calendar, color: 'bg-emerald-500', trend: '+45' },
-          { label: 'Overall Attendance', value: `${stats?.overallAttendance || 0}%`, icon: TrendingUp, color: 'bg-amber-500', trend: '-2%' },
+          { label: 'Total Students', value: stats?.students || 0, icon: Users, color: 'icon-box--primary', trend: '+12%' },
+          { label: 'Total Teachers', value: stats?.teachers || 0, icon: ShieldCheck, color: 'icon-box--accent', trend: '+2' },
+          { label: 'Total Sessions', value: stats?.sessions || 0, icon: Calendar, color: 'icon-box--success', trend: '+45' },
+          { label: 'Overall Attendance', value: `${stats?.overallAttendance || 0}%`, icon: TrendingUp, color: 'icon-box--primary', trend: '-2%' },
         ].map((stat, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800"
+            className="glass-card"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={cn("p-3 rounded-xl text-white shadow-lg", stat.color)}>
-                <stat.icon className="w-6 h-6" />
+              <div className={cn("icon-box icon-box--md", stat.color)}>
+                <stat.icon className="w-6 h-6 text-white" />
               </div>
               <div className={cn(
                 "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full",
-                stat.trend.startsWith('+') ? "bg-green-50 text-green-600 dark:bg-green-900/20" : "bg-red-50 text-red-600 dark:bg-red-900/20"
+                stat.trend.startsWith('+') ? "bg-[rgba(0,212,170,0.15)] text-[--color-success]" : "bg-[rgba(255,77,109,0.15)] text-[--color-error]"
               )}>
                 {stat.trend.startsWith('+') ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                 {stat.trend}
               </div>
             </div>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{stat.label}</p>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1">{stat.value}</h3>
+            <p className="text-[--color-text-secondary] text-sm font-medium">{stat.label}</p>
+            <h3 className="text-2xl font-black text-[--color-text-primary] mt-1">{stat.value}</h3>
           </motion.div>
         ))}
       </div>
 
       {/* Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <section className="lg:col-span-2 glass-card">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Attendance Trends</h2>
-              <p className="text-slate-500 text-sm">Daily attendance count for the last 7 days</p>
+              <h2 className="text-xl font-bold text-[--color-text-primary]">Attendance Trends</h2>
+              <p className="text-[--color-text-secondary] text-sm">Daily attendance count for the last 7 days</p>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
-              <TrendingUp className="w-4 h-4 text-indigo-600" />
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Live Updates</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 glass-card rounded-lg">
+              <TrendingUp className="w-4 h-4 text-[--color-primary]" />
+              <span className="text-xs font-bold text-[--color-text-secondary]">Live Updates</span>
             </div>
           </div>
           <div className="h-[300px] w-full">
@@ -252,27 +252,27 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
               <AreaChart data={stats?.trends || []}>
                 <defs>
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#4FACFE" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#4FACFE" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(25, 118, 210, 0.2)" />
                 <XAxis 
                   dataKey="date" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  tick={{ fontSize: 12, fill: '#3949AB' }}
                   tickFormatter={(str) => format(new Date(str), 'MMM d')}
                 />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#3949AB' }} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: '12px', border: '1px solid rgba(25, 118, 210, 0.2)', color: '#1A237E' }}
+                  labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: '#1A237E' }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="count" 
-                  stroke="#4f46e5" 
+                  stroke="#4FACFE" 
                   strokeWidth={3}
                   fillOpacity={1} 
                   fill="url(#colorCount)" 
@@ -282,40 +282,40 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
           </div>
         </section>
 
-        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <section className="glass-card">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Critical Alerts</h2>
-            <span className="px-2 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 text-[10px] font-bold rounded-full uppercase">Low Attendance</span>
+            <h2 className="text-xl font-bold text-[--color-text-primary]">Critical Alerts</h2>
+            <span className="badge badge--error">Low Attendance</span>
           </div>
-          <div className="space-y-4 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-4 max-h-[320px] overflow-y-auto pr-2">
             {lowAttendanceStudents.length > 0 ? (
               lowAttendanceStudents.map((s, i) => (
-                <div key={i} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-red-200 dark:hover:border-red-900/30 transition-all">
+                <div key={i} className="glass-card rounded-[14px] flex items-center justify-between group hover:bg-white/[0.12] transition-all">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 font-bold text-xs">
+                    <div className="student-avatar bg-gradient-to-br from-[--color-error] to-[--color-warning]">
                       {s.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-900 dark:text-white leading-none">{s.name}</p>
-                      <p className="text-[10px] text-slate-500 mt-1">{s.student_profiles?.[0]?.enrollment_no}</p>
+                      <p className="text-sm font-bold text-[--color-text-primary] leading-none">{s.name}</p>
+                      <p className="text-[10px] text-[--color-text-secondary] mt-1">{s.student_profiles?.[0]?.enrollment_no}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-black text-red-600">{s.attendance_percentage}%</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Attendance</p>
+                    <p className="text-sm font-black text-[--color-error]">{s.attendance_percentage}%</p>
+                    <p className="text-[10px] text-[--color-text-secondary] uppercase font-bold tracking-tighter">Attendance</p>
                   </div>
                 </div>
               ))
             ) : (
               <div className="text-center py-12">
-                <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                <div className="icon-box--lg icon-box--success mx-auto mb-4">
+                  <CheckCircle2 className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-sm text-slate-500">All students are above 75%!</p>
+                <p className="text-sm text-[--color-text-secondary]">All students are above 75%!</p>
               </div>
             )}
           </div>
-          <button className="w-full mt-6 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all border border-indigo-100 dark:border-indigo-900/30">
+          <button className="w-full mt-6 py-3 text-xs font-bold text-[--color-primary] hover:bg-white/[0.08] rounded-[12px] transition-all border border-[--color-glass-border]">
             View All Reports
           </button>
         </section>
@@ -324,53 +324,53 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Create Teacher Form */}
         <section className="lg:col-span-1">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800 p-6">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-6">
-              <UserPlus className="w-5 h-5 text-indigo-600" />
+          <div className="glass-card">
+            <h2 className="text-xl font-bold text-[--color-text-primary] flex items-center gap-2 mb-6">
+              <UserPlus className="w-5 h-5 text-[--color-primary]" />
               Add New Teacher
             </h2>
 
             <form onSubmit={handleCreateTeacher} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+              <div className="field-group">
+                <label className="field-label">Full Name</label>
                 <input
                   type="text"
                   value={teacherName}
                   onChange={(e) => setTeacherName(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white"
+                  className="field-input"
                   placeholder="Prof. John Doe"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Teacher Email</label>
+              <div className="field-group">
+                <label className="field-label">Teacher Email</label>
                 <input
                   type="email"
                   value={teacherEmail}
                   onChange={(e) => setTeacherEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white"
+                  className="field-input"
                   placeholder="teacher@college.com"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Teacher ID / Enrollment No</label>
+              <div className="field-group">
+                <label className="field-label">Teacher ID / Enrollment No</label>
                 <input
                   type="text"
                   value={teacherEnrollmentNo}
                   onChange={(e) => setTeacherEnrollmentNo(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white"
+                  className="field-input"
                   placeholder="TCH001"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+              <div className="field-group">
+                <label className="field-label">Password</label>
                 <input
                   type="password"
                   value={teacherPassword}
                   onChange={(e) => setTeacherPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white"
+                  className="field-input"
                   placeholder="6-digit PIN"
                   pattern="\d{6}"
                   maxLength={6}
@@ -380,7 +380,7 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
+                className="btn-gradient disabled:opacity-50 w-full"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
                 Create Teacher Account
@@ -391,40 +391,40 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
 
         {/* Teachers List */}
         <section className="lg:col-span-2">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800 p-6 h-full">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-6">
-              <Users className="w-5 h-5 text-indigo-600" />
+          <div className="glass-card">
+            <h2 className="text-xl font-bold text-[--color-text-primary] flex items-center gap-2 mb-6">
+              <Users className="w-5 h-5 text-[--color-primary]" />
               Existing Teachers
             </h2>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-slate-400 text-xs uppercase font-bold border-b border-slate-100 dark:border-slate-800">
+                  <tr className="text-[--color-text-secondary] text-xs uppercase font-bold border-b border-[--color-glass-border]">
                     <th className="pb-3 pl-2">Name</th>
                     <th className="pb-3">Teacher ID</th>
                     <th className="pb-3 text-right pr-2">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                <tbody className="divide-y divide-[--color-glass-border]">
                   {teachers.length > 0 ? (
                     teachers.map((t) => (
-                      <tr key={t.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <tr key={t.id} className="group hover:bg-white/[0.05] transition-colors">
                         <td className="py-4 pl-2">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                            <div className="student-avatar bg-gradient-to-br from-[--color-primary] to-[--color-accent]">
                               {t.name.charAt(0)}
                             </div>
-                            <span className="font-medium text-slate-900 dark:text-white">{t.name}</span>
+                            <span className="font-medium text-[--color-text-primary]">{t.name}</span>
                           </div>
                         </td>
-                        <td className="py-4 text-slate-500 dark:text-slate-400 font-mono text-sm">
+                        <td className="py-4 text-[--color-text-secondary] font-mono text-sm">
                           {t.teacher_profiles?.[0]?.employee_id || 'N/A'}
                         </td>
                         <td className="py-4 text-right pr-2">
                           <button 
                             onClick={() => setResettingUserId(t.id)}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all"
+                            className="icon-btn hover:bg-white/[0.12]"
                             title="Reset Password"
                           >
                             <Key className="w-4 h-4" />
@@ -434,7 +434,7 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={3} className="py-8 text-center text-slate-400 italic">
+                      <td colSpan={3} className="py-8 text-center text-[--color-text-secondary] italic">
                         No teachers found.
                       </td>
                     </tr>
@@ -447,20 +447,20 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
       </div>
 
       {/* Student Management */}
-      <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800 p-6">
+      <section className="glass-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-600" />
+          <h2 className="text-xl font-bold text-[--color-text-primary] flex items-center gap-2">
+            <Users className="w-5 h-5 text-[--color-primary]" />
             Manage Students
           </h2>
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[--color-text-secondary] absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or enrollment..."
-              className="pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64 text-slate-900 dark:text-white"
+              className="field-input pl-10"
             />
           </div>
         </div>
@@ -468,7 +468,7 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-slate-400 text-xs uppercase font-bold border-b border-slate-100 dark:border-slate-800">
+              <tr className="text-[--color-text-secondary] text-xs uppercase font-bold border-b border-[--color-glass-border]">
                 <th className="pb-3 pl-2">Name</th>
                 <th className="pb-3">Enrollment No</th>
                 <th className="pb-3">Course</th>
@@ -478,37 +478,37 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
                 <th className="pb-3 text-right pr-2">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+            <tbody className="divide-y divide-[--color-glass-border]">
               {filteredStudents.length > 0 ? (
                 filteredStudents.map((s) => (
-                  <tr key={s.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <tr key={s.id} className="group hover:bg-white/[0.05] transition-colors">
                     <td className="py-4 pl-2">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-xs">
+                        <div className="student-avatar bg-gradient-to-br from-[--color-accent] to-[--color-primary]">
                           {s.name.charAt(0)}
                         </div>
-                        <span className="font-medium text-slate-900 dark:text-white">{s.name}</span>
+                        <span className="font-medium text-[--color-text-primary]">{s.name}</span>
                       </div>
                     </td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400 font-mono text-sm">
+                    <td className="py-4 text-[--color-text-secondary] font-mono text-sm">
                       {s.student_profiles?.[0]?.enrollment_no || 'N/A'}
                     </td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400 text-sm">
+                    <td className="py-4 text-[--color-text-secondary] text-sm">
                       {s.student_profiles?.[0]?.course || 'N/A'}
                     </td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400 text-sm">
+                    <td className="py-4 text-[--color-text-secondary] text-sm">
                       {s.student_profiles?.[0]?.semester || 'N/A'}
                     </td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400 text-sm">
+                    <td className="py-4 text-[--color-text-secondary] text-sm">
                       {s.student_profiles?.[0]?.major_subject || 'N/A'}
                     </td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400 text-sm">
+                    <td className="py-4 text-[--color-text-secondary] text-sm">
                       {s.student_profiles?.[0]?.section || 'N/A'}
                     </td>
                     <td className="py-4 text-right pr-2">
                       <button 
                         onClick={() => setResettingUserId(s.id)}
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all"
+                        className="icon-btn hover:bg-white/[0.12]"
                         title="Reset Password"
                       >
                         <Key className="w-4 h-4" />
@@ -518,7 +518,7 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400 italic">
+                  <td colSpan={7} className="py-8 text-center text-[--color-text-secondary] italic">
                     No students found.
                   </td>
                 </tr>
@@ -543,24 +543,24 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-8 border border-slate-100 dark:border-slate-800"
+              className="modal"
             >
-              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center mb-6">
-                <Key className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              <div className="icon-box--md icon-box--primary mb-6">
+                <Key className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Reset User Password</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
+              <h3 className="text-xl font-bold text-[--color-text-primary] mb-2">Reset User Password</h3>
+              <p className="text-[--color-text-secondary] text-sm mb-6">
                 Enter a new password for this user. They will be able to sign in with this password immediately.
               </p>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password (6-digit PIN)</label>
+                <div className="field-group">
+                  <label className="field-label">New Password (6-digit PIN)</label>
                   <input 
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white"
+                    className="field-input"
                     placeholder="e.g. 123456"
                     pattern="\d{6}"
                     maxLength={6}
@@ -570,14 +570,14 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
                 <div className="flex gap-3 pt-2">
                   <button 
                     onClick={() => setResettingUserId(null)}
-                    className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="flex-1 icon-btn border border-[--color-glass-border] text-[--color-text-primary] font-semibold rounded-[12px] hover:bg-white/[0.08]"
                   >
                     Cancel
                   </button>
                   <button 
                     onClick={() => handleResetPassword(resettingUserId)}
                     disabled={loading || !/^\d{6}$/.test(newPassword)}
-                    className="flex-1 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:bg-indigo-400 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
+                    className="btn-gradient flex-1 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reset Password'}
                   </button>
@@ -589,14 +589,14 @@ export default function AdminDashboard({ user, profile }: { user: any; profile: 
       </AnimatePresence>
 
       {/* Admin Info */}
-      <section className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-6 border border-indigo-100 dark:border-indigo-900/30">
+      <section className="glass-card--primary border border-[--color-primary]/30">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800">
-            <ShieldCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <div className="icon-box--md icon-box--primary">
+            <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-100 mb-1">Secure Admin Panel</h3>
-            <p className="text-indigo-700 dark:text-indigo-300 text-sm">
+            <h3 className="text-lg font-bold text-[--color-text-primary] mb-1">Secure Admin Panel</h3>
+            <p className="text-[--color-text-secondary] text-sm">
               As an administrator, you can manage teacher and student accounts. 
               If a user forgets their password, you can reset it here and provide them with the new credentials.
             </p>

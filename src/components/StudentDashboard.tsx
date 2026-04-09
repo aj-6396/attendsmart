@@ -169,45 +169,49 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-8">
-        <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <section className="glass-card">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">{profile.name}</h1>
-              <p className="text-slate-500 text-sm flex items-center gap-2 mt-1">
+              <h1 className="text-2xl font-bold text-[--color-text-primary]">{profile.name}</h1>
+              <p className="text-[--color-text-secondary] text-sm flex items-center gap-2 mt-1">
                 <GraduationCap className="w-4 h-4" />
                 {profile.course} • {profile.semester} Semester • {profile.major_subject} • Batch {profile.batch}
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <div className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                <p className="text-[10px] text-slate-400 font-bold uppercase">Enrollment No</p>
-                <p className="text-sm font-mono font-bold text-slate-700">{profile.enrollment_no}</p>
-              </div>
-              <div className="px-3 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100">
-                <p className="text-[10px] text-indigo-400 font-bold uppercase">Exam Roll No</p>
-                <p className="text-sm font-mono font-bold text-indigo-700">{profile.exam_roll_no || 'N/A'}</p>
+            {/* Student Detail Box */}
+            <div className="glass-card--primary p-4 min-w-[200px]">
+              <h3 className="text-sm font-semibold text-[--color-text-secondary] mb-3 text-center">Student Details</h3>
+              <div className="space-y-3">
+                <div className="text-center">
+                  <p className="text-xs text-[--color-text-secondary] font-medium uppercase tracking-wide">Enrollment No</p>
+                  <p className="text-lg font-mono font-bold text-[--color-text-primary] mt-1">{profile.enrollment_no}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-[--color-text-secondary] font-medium uppercase tracking-wide">Exam Roll No</p>
+                  <p className="text-lg font-mono font-bold text-[--color-text-primary] mt-1">{profile.exam_roll_no || 'N/A'}</p>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <section>
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-            <div className="bg-emerald-600 p-6 text-white">
+          <div className="glass-card overflow-hidden">
+            <div className="bg-gradient-to-r from-[--color-success] to-[--color-secondary] p-6 text-black">
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <ShieldCheck className="w-6 h-6" />
                 Mark Attendance
               </h2>
-              <p className="text-emerald-100 text-sm mt-1">Enter the 4-digit OTP provided by your teacher.</p>
+              <p className="text-black/80 text-sm mt-1">Enter the 4-digit OTP provided by your teacher.</p>
             </div>
             
             <div className="p-8">
               {locationPermission === 'denied' && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="alert alert--error mb-6">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
                   <div>
-                    <h4 className="text-sm font-bold text-red-900">Location Access Denied</h4>
-                    <p className="text-xs text-red-700 mt-1">
+                    <h4 className="text-sm font-bold">Location Access Denied</h4>
+                    <p className="text-xs mt-1">
                       You have denied location access. Please enable location services for this app in your device settings or browser settings to mark attendance.
                     </p>
                   </div>
@@ -215,11 +219,11 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
               )}
 
               {locationPermission === 'prompt' && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="alert alert--warning mb-6">
+                  <MapPin className="w-5 h-5 flex-shrink-0" />
                   <div>
-                    <h4 className="text-sm font-bold text-amber-900">Location Access Required</h4>
-                    <p className="text-xs text-amber-700 mt-1 mb-2">
+                    <h4 className="text-sm font-bold">Location Access Required</h4>
+                    <p className="text-xs mt-1 mb-2">
                       We need your location to verify you are in the classroom.
                     </p>
                     <button
@@ -236,7 +240,7 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
                           { enableHighAccuracy: true }
                         );
                       }}
-                      className="text-xs font-bold bg-amber-200 text-amber-800 px-3 py-1.5 rounded-lg hover:bg-amber-300 transition-colors"
+                      className="text-xs font-bold bg-[--color-warning]/30 text-[--color-warning] px-3 py-1.5 rounded-lg hover:bg-[--color-warning]/50 transition-colors"
                     >
                       Grant Permission
                     </button>
@@ -245,8 +249,8 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
               )}
 
               <form onSubmit={markAttendance} className="max-w-sm mx-auto space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider block text-center">
+                <div className="field-group">
+                  <label className="field-label text-center uppercase tracking-wider block text-black">
                     Enter 4-Digit OTP
                   </label>
                   <div className="flex justify-center gap-4">
@@ -256,7 +260,7 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                       placeholder="0000"
-                      className="w-full text-center text-4xl font-black tracking-[0.5em] py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all placeholder:text-slate-200"
+                      className="field-input text-center text-4xl font-black tracking-[0.5em] w-full"
                     />
                   </div>
                 </div>
@@ -268,12 +272,11 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       className={cn(
-                        "p-4 rounded-xl flex items-center gap-3 text-sm font-medium",
-                        status.type === 'success' ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                        status.type === 'success' ? "alert alert--success" : "alert alert--error"
                       )}
                     >
-                      {status.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                      {status.message}
+                      {status.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+                      <p className="text-sm font-medium">{status.message}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -281,7 +284,7 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
                 <button
                   type="submit"
                   disabled={loading || otp.length !== 4}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-2"
+                  className="btn-gradient-success w-full disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -331,18 +334,18 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
                   history.map((record) => (
                     <tr key={record.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-4 px-6">
-                        <div className="font-medium text-slate-900">
+                        <div className="font-medium text-[--color-text-primary]">
                           {format(new Date(record.created_at), 'MMM dd, yyyy')}
                         </div>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-[--color-text-secondary]">
                           {format(new Date(record.created_at), 'HH:mm')}
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-slate-600 text-sm">
+                      <td className="py-4 px-6 text-[--color-text-secondary] text-sm">
                         {record.attendance_sessions?.teacher?.name || 'Unknown'}
                       </td>
                       <td className="py-4 px-6 text-right">
-                        <span className="inline-flex items-center gap-1.5 text-emerald-600 font-bold text-xs bg-emerald-50 px-2.5 py-1 rounded-full">
+                        <span className="badge badge--success">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Present
                         </span>
@@ -351,7 +354,7 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={3} className="py-12 text-center text-slate-400 italic">
+                    <td colSpan={3} className="py-12 text-center text-[--color-text-secondary] italic">
                       No attendance records found.
                     </td>
                   </tr>
@@ -363,8 +366,8 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
       </div>
 
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+        <div className="glass-card">
+          <h3 className="text-[--color-text-secondary] text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Attendance Stats
           </h3>
@@ -372,6 +375,7 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
           <div className="flex flex-col items-center text-center mb-6">
             <div className="relative w-32 h-32 flex items-center justify-center mb-4">
               <svg className="w-full h-full transform -rotate-90">
+                {/* Background circle */}
                 <circle
                   cx="64"
                   cy="64"
@@ -379,51 +383,75 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
                   stroke="currentColor"
                   strokeWidth="8"
                   fill="transparent"
-                  className="text-slate-100"
+                  className="text-[--color-text-secondary]/30"
                 />
+                {/* Red segment for absent */}
                 <circle
                   cx="64"
                   cy="64"
                   r="58"
-                  stroke="currentColor"
+                  stroke="#FF4D6D"
                   strokeWidth="8"
                   fill="transparent"
                   strokeDasharray={364.4}
-                  strokeDashoffset={364.4 - (364.4 * stats.percentage) / 100}
-                  className={cn(
-                    "transition-all duration-1000 ease-out",
-                    stats.percentage >= 75 ? "text-emerald-500" : "text-amber-500"
-                  )}
+                  strokeDashoffset={0}
+                  className="transition-all duration-1000 ease-out"
+                  style={{
+                    strokeDasharray: `${(364.4 * (stats.total - stats.attended)) / stats.total} 364.4`
+                  }}
+                />
+                {/* Green segment for present */}
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="58"
+                  stroke="#00D4AA"
+                  strokeWidth="8"
+                  fill="transparent"
+                  strokeDasharray={364.4}
+                  className="transition-all duration-1000 ease-out"
+                  style={{
+                    strokeDasharray: `${(364.4 * stats.attended) / stats.total} 364.4`,
+                    strokeDashoffset: `-${(364.4 * (stats.total - stats.attended)) / stats.total}`
+                  }}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-black text-slate-900">{stats.percentage}%</span>
-                <span className="text-[10px] text-slate-400 font-bold uppercase">Overall</span>
+                <span className="text-3xl font-black text-[--color-text-primary]">{stats.percentage}%</span>
+                <span className="text-[10px] text-[--color-text-secondary] font-bold uppercase">Overall</span>
               </div>
             </div>
-            <p className="text-slate-600 text-sm">
-              You have been present for <span className="font-bold text-slate-900">{stats.attended}</span> out of <span className="font-bold text-slate-900">{stats.total}</span> classes.
+            <div className="flex gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#00D4AA]"></div>
+                <span className="text-[--color-text-secondary]">Present: {stats.attended}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#FF4D6D]"></div>
+                <span className="text-[--color-text-secondary]">Absent: {stats.total - stats.attended}</span>
+              </div>
+            </div>
+            <p className="text-[--color-text-secondary] text-sm mt-2">
+              You have been present for <span className="font-bold text-[--color-text-primary]">{stats.attended}</span> out of <span className="font-bold text-[--color-text-primary]">{stats.total}</span> classes.
             </p>
           </div>
 
           {stats.percentage < 75 && (
-            <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-amber-900">Low Attendance Alert</h4>
-                  <p className="text-xs text-amber-700 mt-1">
-                    Your attendance is below the required 75% limit. Please attend classes regularly to avoid penalties.
-                  </p>
-                </div>
+            <div className="alert alert--warning">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-bold">Low Attendance Alert</h4>
+                <p className="text-xs mt-1">
+                  Your attendance is below the required 75% limit. Please attend classes regularly to avoid penalties.
+                </p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="bg-indigo-600 p-6 rounded-2xl shadow-lg text-white">
-          <h3 className="font-bold mb-2">Smart Geofencing</h3>
-          <p className="text-indigo-100 text-sm leading-relaxed">
+        <div className="glass-card bg-gradient-to-br from-[--color-primary]/20 to-[--color-secondary]/20 border border-[--color-primary]/30">
+          <h3 className="font-bold text-[--color-text-primary] mb-2">Smart Geofencing</h3>
+          <p className="text-[--color-text-secondary] text-sm leading-relaxed">
             The system automatically adjusts the attendance radius based on GPS accuracy. 
             This ensures you can mark attendance even with poor indoor signals, 
             while blocking those in nearby buildings or hostels.

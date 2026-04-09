@@ -352,19 +352,19 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
       {(error || success) && (
         <div className="fixed top-20 right-4 z-[60] max-w-sm w-full animate-in slide-in-from-right">
           {error && (
-            <div className="bg-white border-l-4 border-red-500 shadow-xl p-4 rounded-r-xl flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              <p className="text-sm text-slate-700">{error}</p>
-              <button onClick={() => setError(null)} className="ml-auto text-slate-400 hover:text-slate-600">
+            <div className="alert alert--error">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+              <button onClick={() => setError(null)} className="ml-auto text-[--color-text-secondary] hover:text-[--color-text-primary]">
                 <X className="w-4 h-4" />
               </button>
             </div>
           )}
           {success && (
-            <div className="bg-white border-l-4 border-green-500 shadow-xl p-4 rounded-r-xl flex items-center gap-3 mt-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
-              <p className="text-sm text-slate-700">{success}</p>
-              <button onClick={() => setSuccess(null)} className="ml-auto text-slate-400 hover:text-slate-600">
+            <div className="glass-card--success border-l-4 p-4 flex items-center gap-3 mt-2">
+              <CheckCircle2 className="w-5 h-5 text-[--color-success] flex-shrink-0" />
+              <p className="text-sm text-[--color-success]">{success}</p>
+              <button onClick={() => setSuccess(null)} className="ml-auto text-[--color-text-secondary] hover:text-[--color-text-primary]">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -372,12 +372,14 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
         </div>
       )}
 
-      <div className="flex p-1 bg-slate-100 rounded-xl w-fit">
+      <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveTab('session')}
           className={cn(
-            "px-6 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2",
-            activeTab === 'session' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            "px-6 py-2 text-sm font-bold rounded-[12px] transition-all flex items-center gap-2",
+            activeTab === 'session' 
+              ? "glass-card bg-white/[0.15] text-[--color-primary]" 
+              : "text-[--color-text-secondary] hover:text-[--color-text-primary]"
           )}
         >
           <Clock className="w-4 h-4" />
@@ -386,8 +388,10 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
         <button
           onClick={() => setActiveTab('records')}
           className={cn(
-            "px-6 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2",
-            activeTab === 'records' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            "px-6 py-2 text-sm font-bold rounded-[12px] transition-all flex items-center gap-2",
+            activeTab === 'records' 
+              ? "glass-card bg-white/[0.15] text-[--color-primary]" 
+              : "text-[--color-text-secondary] hover:text-[--color-text-primary]"
           )}
         >
           <BarChart3 className="w-4 h-4" />
@@ -406,15 +410,15 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
           >
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                  <Clock className="w-6 h-6 text-indigo-600" />
+                <h2 className="text-2xl font-bold text-[--color-text-primary] flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-[--color-primary]" />
                   Active Session
                 </h2>
                 {!activeSession && (
                   <button
                     onClick={createSession}
                     disabled={loading}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-xl font-semibold transition-all"
+                    className="btn-gradient disabled:opacity-50 px-4 py-2 flex items-center gap-2"
                   >
                     {loading ? (
                       <div className="flex items-center gap-2">
@@ -432,11 +436,11 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
               </div>
 
               {locationPermission === 'denied' && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="alert alert--error mb-6">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
                   <div>
-                    <h4 className="text-sm font-bold text-red-900">Location Access Denied</h4>
-                    <p className="text-xs text-red-700 mt-1">
+                    <h4 className="text-sm font-bold">Location Access Denied</h4>
+                    <p className="text-xs mt-1">
                       You have denied location access. Please enable location services for this app in your device settings or browser settings to start a session.
                     </p>
                   </div>
@@ -444,11 +448,11 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
               )}
 
               {locationPermission === 'prompt' && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="alert alert--warning mb-6">
+                  <MapPin className="w-5 h-5 flex-shrink-0" />
                   <div>
-                    <h4 className="text-sm font-bold text-amber-900">Location Access Required</h4>
-                    <p className="text-xs text-amber-700 mt-1 mb-2">
+                    <h4 className="text-sm font-bold">Location Access Required</h4>
+                    <p className="text-xs mt-1 mb-2">
                       We need your location to set the classroom boundary for students.
                     </p>
                     <button
@@ -465,7 +469,7 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
                           { enableHighAccuracy: true }
                         );
                       }}
-                      className="text-xs font-bold bg-amber-200 text-amber-800 px-3 py-1.5 rounded-lg hover:bg-amber-300 transition-colors"
+                      className="text-xs font-bold bg-[--color-warning]/30 text-[--color-warning] px-3 py-1.5 rounded-lg hover:bg-[--color-warning]/50 transition-colors"
                     >
                       Grant Permission
                     </button>
@@ -479,19 +483,19 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden"
+                    className="glass-card overflow-hidden"
                   >
-                    <div className="bg-indigo-600 p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="bg-gradient-to-r from-[--color-primary] to-[--color-secondary] p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
                       <div>
-                        <p className="text-indigo-100 text-sm font-medium uppercase tracking-wider mb-1">Current OTP</p>
-                        <h3 className="text-5xl font-black tracking-widest">{activeSession.otp}</h3>
+                        <p className="text-white/80 text-sm font-medium uppercase tracking-wider mb-1">Current OTP</p>
+                        <h3 className="otp-display">{activeSession.otp}</h3>
                       </div>
                       <div className="flex flex-wrap gap-4">
-                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center gap-3">
-                          <MapPin className="w-5 h-5 text-indigo-200" />
+                        <div className="icon-box--md icon-box--primary">
+                          <MapPin className="w-5 h-5" />
                           <div>
-                            <p className="text-[10px] text-indigo-200 uppercase font-bold">Accuracy</p>
-                            <p className="font-mono font-bold">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : 'N/A'}</p>
+                            <p className="text-[10px] text-white/80 uppercase font-bold">Accuracy</p>
+                            <p className="font-mono font-bold text-white">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : 'N/A'}</p>
                           </div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center gap-3">
@@ -550,8 +554,8 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
                                   className="group hover:bg-slate-50 transition-colors"
                                 >
                                   <td className="py-3 pl-2 font-medium text-slate-900">{record.users.name}</td>
-                                  <td className="py-3 text-slate-500 text-sm">{record.users.enrollment_no}</td>
-                                  <td className="py-3 text-slate-500 text-sm">{record.users.exam_roll_no || 'N/A'}</td>
+                                  <td className="py-3 text-slate-500 text-sm">{(record.users.student_profiles as any)?.[0]?.enrollment_no || 'N/A'}</td>
+                                  <td className="py-3 text-slate-500 text-sm">{(record.users.student_profiles as any)?.[0]?.exam_roll_no || 'N/A'}</td>
                                   <td className="py-3 text-right pr-2 text-slate-400 text-sm font-mono">
                                     {format(new Date(record.created_at), 'HH:mm:ss')}
                                   </td>
