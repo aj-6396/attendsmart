@@ -311,7 +311,7 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
         .from('class_enrollments')
         .select(`
           student_id,
-          users:users!student_id(
+          users:users(
             id,
             name,
             student_profiles(
@@ -327,11 +327,15 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
 
       if (enrollError) throw enrollError;
       
+      console.log('DEBUG: Enrollments fetched:', enrollments);
+
       const enrolledStudents = (enrollments || []).map((e: any) => ({
         id: e.users?.id,
         name: e.users?.name,
         profile: e.users?.student_profiles?.[0]
       })).filter((s: any) => s.id);
+
+      console.log('DEBUG: Enrolled Students Mapped:', enrolledStudents);
 
       const { data: classSessions, error: sessionError } = await supabase
         .from('attendance_sessions')
