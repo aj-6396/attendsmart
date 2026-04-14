@@ -309,7 +309,20 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
 
       const { data: enrollments, error: enrollError } = await supabase
         .from('class_enrollments')
-        .select('student_id, users!student_id(id, name, student_profiles(enrollment_no, exam_roll_no))')
+        .select(`
+          student_id,
+          users:users!student_id(
+            id,
+            name,
+            student_profiles(
+              enrollment_no,
+              exam_roll_no,
+              semester,
+              major_subject,
+              course
+            )
+          )
+        `)
         .eq('class_id', activeClass.id);
 
       if (enrollError) throw enrollError;
