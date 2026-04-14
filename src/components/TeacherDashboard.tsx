@@ -332,10 +332,15 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
       const enrolledStudents = (enrollments || []).map((e: any) => {
         // Handle cases where users might be returned as an array or a single object
         const userData = Array.isArray(e.users) ? e.users[0] : e.users;
+        // student_profiles is a 1-to-1 relation, so it's usually returned as an object, not an array
+        const profileData = Array.isArray(userData?.student_profiles) 
+          ? userData?.student_profiles[0] 
+          : userData?.student_profiles;
+          
         return {
           id: userData?.id,
           name: userData?.name,
-          profile: userData?.student_profiles?.[0]
+          profile: profileData
         };
       }).filter((s: any) => s.id);
 
