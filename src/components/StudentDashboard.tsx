@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap } from 'lucide-react';
+import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -18,6 +18,10 @@ interface AttendanceRecord {
 }
 
 export default function StudentDashboard({ user, profile }: { user: any; profile: any }) {
+  const [classes, setClasses] = useState<any[]>([]);
+  const [activeClass, setActiveClass] = useState<any | null>(null);
+  const [showJoinClass, setShowJoinClass] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
@@ -95,7 +99,7 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user.id]);
+  }, [user.id, activeClass?.id]);
 
   const markAttendance = async (e: React.FormEvent) => {
     e.preventDefault();

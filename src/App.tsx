@@ -126,11 +126,28 @@ export default function App() {
       setLoading(true);
       setError(null);
       const email = loginType === 'student' ? getEmailFromEnrollment(enrollmentNo.trim()) : teacherEmail.trim();
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
+      
+      // Device ID Check for Students
+      if (loginType === 'student' && data?.user) {
+         const { data: profileData } = await supabase
+           .from('student_profiles')
+           .select('device_id')
+           .eq('id', data.user.id)
+           .single();
+           
+         if (profileData && profileData.device_id) {
+           let localDeviceId = localStorage.getItem('device_id');
+           if (profileData.device_id !== localDeviceId) {
+             await supabase.auth.signOut();
+             throw new Error('Login denied: Your account is registered to another device.');
+           }
+         }
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Invalid credentials.');
@@ -151,8 +168,8 @@ export default function App() {
       return;
     }
 
-    if (!/^[a-zA-Z0-9]{10}$/.test(examRollNo)) {
-      setError('Examination Roll Number must be exactly 10 alphanumeric characters.');
+    if (!/^[a-zA-Z0-9]{11}$/.test(examRollNo)) {
+      setError('Examination Roll Number must be exactly 11 alphanumeric characters.');
       return;
     }
 
@@ -179,7 +196,15 @@ export default function App() {
           majorSubject: majorSubject.trim(),
           batch: batch.trim(),
           section: section.trim(),
-          password
+          password,
+          deviceId: (() => {
+            let id = localStorage.getItem('device_id');
+            if (!id) {
+               id = crypto.randomUUID();
+               localStorage.setItem('device_id', id);
+            }
+            return id;
+          })()
         })
       });
 
@@ -376,10 +401,10 @@ export default function App() {
                     <input
                       type="text"
                       value={examRollNo}
-                      onChange={(e) => setExamRollNo(e.target.value.toUpperCase().slice(0, 10))}
+                      onChange={(e) => setExamRollNo(e.target.value.toUpperCase().slice(0, 11))}
                       className="field-input"
-                      placeholder="ABC1234567"
-                      maxLength={10}
+                      placeholder="ABC12345678"
+                      maxLength={11}
                       required
                     />
                   </motion.div>

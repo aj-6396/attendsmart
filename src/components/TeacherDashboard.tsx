@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Users, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X } from 'lucide-react';
+import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -46,6 +46,10 @@ interface StudentStats {
 }
 
 export default function TeacherDashboard({ user, profile }: { user: any; profile: any }) {
+  const [classes, setClasses] = useState<any[]>([]);
+  const [activeClass, setActiveClass] = useState<any | null>(null);
+  const [showCreateClass, setShowCreateClass] = useState(false);
+  const [newClassName, setNewClassName] = useState('');
   const [activeTab, setActiveTab] = useState<'session' | 'records'>('session');
   const [sessions, setSessions] = useState<Session[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -118,7 +122,7 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
       const { data, error } = await supabase
         .from('attendance_sessions')
         .select('*')
-        .eq('teacher_id', user.id)
+        .eq('class_id', activeClass?.id || '00000000-0000-0000-0000-000000000000')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -135,7 +139,7 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
     // Realtime subscription
     const channel = supabase
       .channel('sessions_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_sessions', filter: `teacher_id=eq.${user.id}` }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_sessions', filter: `class_id=eq.${activeClass?.id}` }, (payload) => {
         fetchSessions();
       })
       .subscribe();
@@ -143,7 +147,7 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user.id]);
+  }, [user.id, activeClass?.id]);
 
   const fetchAttendance = useCallback(async () => {
     if (!activeSession) return;
@@ -196,7 +200,7 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
       const { data: teacherSessions, error: sessionError } = await supabase
         .from('attendance_sessions')
         .select('id')
-        .eq('teacher_id', user.id);
+        .eq('class_id', activeClass?.id || '00000000-0000-0000-0000-000000000000');
 
       if (sessionError) throw sessionError;
       const sessionIds = teacherSessions.map(s => s.id);

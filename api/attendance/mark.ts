@@ -16,13 +16,25 @@ export default async function handler(req: any, res: any) {
 
     const { data: session, error: sessionError } = await supabase
       .from("attendance_sessions")
-      .select("*")
+      .select("id, lat, lng, class_id")
       .eq("otp", otp)
       .eq("active", true)
       .gt("expires_at", new Date().toISOString())
       .single();
 
     if (sessionError || !session) return res.status(404).json({ error: "Invalid or expired OTP" });
+
+    // Ensure student is enrolled in the class!
+    if (session.class_id) {
+       const { data: enrollment } = await supabase
+         .from("class_enrollments")
+         .select("class_id")
+         .eq("class_id", session.class_id)
+         .eq("student_id", studentId)
+         .single();
+         
+       if (!enrollment) return res.status(403).json({ error: "You are not enrolled in this class." });
+    }
 
     const { data: existing } = await supabase
       .from("attendance_records")
