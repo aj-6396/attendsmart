@@ -1,6 +1,6 @@
-# AttendSmart - Real-Time Attendance Monitoring System
+# Class Mark - Real-Time Attendance Monitoring System
 
-AttendSmart is a secure, location-aware, and real-time attendance tracking application designed for educational institutions. It allows teachers to create live attendance sessions and students to mark their presence securely using OTP and GPS verification.
+Class Mark is a secure, location-aware, and real-time attendance tracking application designed for educational institutions. It allows teachers to create live attendance sessions and students to mark their presence securely using OTP and GPS verification.
 
 ## 🌟 Features
 

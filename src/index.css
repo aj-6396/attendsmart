@@ -7,47 +7,47 @@
 
 @layer base {
   :root {
-    /* Primary Colors */
-    --color-primary: #4FACFE;
-    --color-secondary: #7B61FF;
-    --color-accent: #9B59B6;
-    --color-success: #00D4AA;
-    --color-error: #FF4D6D;
-    --color-warning: #FFB347;
+    /* Institutional Primary Colors */
+    --color-primary: #002147; /* Oxford Blue */
+    --color-secondary: #D4AF37; /* University Gold */
+    --color-accent: #800000; /* Crimson / Maroon */
+    --color-success: #15803d; /* Professional Green */
+    --color-error: #b91c1c; /* Deep Red */
+    --color-warning: #d97706; /* Amber */
     
-    /* Light Backgrounds with Blue-Purple Gradient */
-    --color-bg: linear-gradient(135deg, #E0F2FE 0%, #F3E5F5 50%, #E8EAF6 100%);
-    --color-surface: rgba(255, 255, 255, 0.8);
+    /* Light Backgrounds with Subtle Structure */
+    --color-bg: #F8FAFC; /* Slate 50 */
+    --color-surface: rgba(255, 255, 255, 0.95);
     
-    /* Dark Text Colors for Light Background */
-    --color-text-primary: #1A237E;
-    --color-text-secondary: #3949AB;
-    --color-text-hint: #7986CB;
+    /* Clear Text Colors */
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-hint: #94a3b8;
     
     /* Glass & Borders */
-    --color-glass-border: rgba(25, 118, 210, 0.2);
+    --color-glass-border: rgba(0, 33, 71, 0.1);
   }
 
   .dark {
-    /* Dark Mode Colors - Darker shades of gradients */
-    --color-primary: #1E40AF; /* Darker blue */
-    --color-secondary: #4C1D95; /* Darker purple */
-    --color-accent: #7C3AED; /* Darker violet */
-    --color-success: #059669; /* Darker green */
-    --color-error: #DC2626; /* Darker red */
-    --color-warning: #D97706; /* Darker orange */
+    /* Dark Mode Colors - Deep Midnight */
+    --color-primary: #3b82f6; /* Lighter blue for dark mode visibility */
+    --color-secondary: #FBBF24; /* Brighter gold */
+    --color-accent: #ef4444; /* Brighter red */
+    --color-success: #22c55e;
+    --color-error: #f87171;
+    --color-warning: #fbbf24;
     
     /* Dark Background */
-    --color-bg: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
-    --color-surface: rgba(30, 41, 59, 0.8);
+    --color-bg: #0f172a; /* Slate 900 */
+    --color-surface: rgba(30, 41, 59, 0.95);
     
     /* Light Text Colors for Dark Background */
-    --color-text-primary: #F1F5F9;
-    --color-text-secondary: #CBD5E1;
-    --color-text-hint: #94A3B8;
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #cbd5e1;
+    --color-text-hint: #64748b;
     
     /* Glass & Borders for Dark Mode */
-    --color-glass-border: rgba(148, 163, 184, 0.2);
+    --color-glass-border: rgba(255, 255, 255, 0.1);
   }
 
   * {
@@ -69,47 +69,26 @@
 }
 
 @layer components {
-  /* Animated Background */
+  /* Subtle Background Grid */
   .animated-bg {
-    @apply fixed inset-0 z-0 overflow-hidden;
-    background: var(--color-bg);
-  }
-
-  .animated-bg::before {
-    @apply absolute w-96 h-96 rounded-full blur-[100px];
-    content: '';
-    background: radial-gradient(circle, rgba(79, 172, 254, 0.08), transparent);
-    top: -100px;
-    left: -80px;
-    animation: orb-float 8s ease-in-out infinite alternate;
-  }
-
-  .animated-bg::after {
-    @apply absolute w-80 h-80 rounded-full blur-[100px];
-    content: '';
-    background: radial-gradient(circle, rgba(155, 89, 182, 0.06), transparent);
-    bottom: -80px;
-    right: -60px;
-    animation: orb-float 8s ease-in-out infinite alternate;
-    animation-delay: -4s;
-  }
-
-  .dark .animated-bg::before {
-    background: radial-gradient(circle, rgba(30, 64, 175, 0.12), transparent);
-  }
-
-  .dark .animated-bg::after {
-    background: radial-gradient(circle, rgba(76, 29, 149, 0.1), transparent);
-  }
-
-  .dot-grid {
     @apply fixed inset-0 z-0 pointer-events-none;
-    background-image: radial-gradient(circle, rgba(25, 118, 210, 0.1) 1px, transparent 1px);
+    background-color: var(--color-bg);
+    background-image: linear-gradient(rgba(0, 33, 71, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 33, 71, 0.03) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 
+  .dark .animated-bg {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  }
+
+  .dot-grid {
+    display: none;
+  }
+
   .dark .dot-grid {
-    background-image: radial-gradient(circle, rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+    display: none;
   }
 
   /* Page Container */
@@ -154,37 +133,41 @@
     border-color: rgba(79, 172, 254, 0.3);
   }
 
-  /* Gradient Buttons */
+  /* Solid Professional Buttons */
   .btn-gradient {
-    @apply relative inline-flex items-center justify-center gap-2 w-full h-14 px-6 rounded-[14px] text-white font-semibold text-base tracking-wide border-0 cursor-pointer transition-all duration-150;
-    background: linear-gradient(135deg, #4FACFE, #00F2FE);
-    box-shadow: 0 8px 20px rgba(79, 172, 254, 0.35);
+    @apply relative inline-flex items-center justify-center gap-2 w-full h-14 px-6 rounded-lg text-white font-semibold text-base tracking-wide border transition-all duration-150;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 14px rgba(0, 33, 71, 0.15);
   }
 
   .btn-gradient:hover {
-    @apply -translate-y-0.5;
-    box-shadow: 0 12px 28px rgba(79, 172, 254, 0.45);
+    @apply -translate-y-[1px];
+    background: var(--color-primary);
+    opacity: 0.9;
+    box-shadow: 0 6px 20px rgba(0, 33, 71, 0.25);
   }
 
   .btn-gradient:active {
-    @apply scale-97;
+    @apply scale-[0.98];
   }
 
   .btn-gradient-accent {
-    @apply relative inline-flex items-center justify-center gap-2 w-full h-14 px-6 rounded-[14px] text-white font-semibold text-base tracking-wide border-0 cursor-pointer transition-all duration-150;
-    background: linear-gradient(135deg, #7B61FF, #4FACFE);
-    box-shadow: 0 8px 20px rgba(123, 97, 255, 0.35);
+    @apply relative inline-flex items-center justify-center gap-2 w-full h-14 px-6 rounded-lg text-[--color-primary] font-semibold text-base tracking-wide border transition-all duration-150;
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.15);
   }
 
   .btn-gradient-success {
-    @apply relative inline-flex items-center justify-center gap-2 w-full h-14 px-6 rounded-[14px] text-white font-semibold text-base tracking-wide border-0 cursor-pointer transition-all duration-150;
-    background: linear-gradient(135deg, #00D4AA, #00A896);
-    box-shadow: 0 8px 20px rgba(0, 212, 170, 0.35);
+    @apply relative inline-flex items-center justify-center gap-2 w-full h-14 px-6 rounded-lg text-white font-semibold text-base tracking-wide border transition-all duration-150;
+    background: var(--color-success);
+    border-color: var(--color-success);
   }
 
   .btn-gradient-disabled {
-    @apply relative inline-flex items-center justify-center gap-2 w-full h-14 px-6 rounded-[14px] text-white font-semibold text-base tracking-wide border-0 cursor-not-allowed opacity-70 transition-all duration-150;
-    background: linear-gradient(135deg, #3A4A6B, #2A3A5B);
+    @apply relative inline-flex items-center justify-center gap-2 w-full h-14 px-6 rounded-lg text-white font-semibold text-base tracking-wide border-0 cursor-not-allowed opacity-50 transition-all duration-150;
+    background: var(--color-text-hint);
     box-shadow: none;
   }
 
@@ -250,18 +233,25 @@
   }
 
   .icon-box--primary {
-    @apply inline-flex items-center justify-center rounded-[18px] flex-shrink-0;
-    background: linear-gradient(135deg, #4FACFE, #00F2FE);
+    @apply inline-flex items-center justify-center rounded-[18px] flex-shrink-0 text-white;
+    background: var(--color-primary);
+    box-shadow: 0 4px 14px rgba(0, 33, 71, 0.15);
   }
 
   .icon-box--accent {
-    @apply inline-flex items-center justify-center rounded-[18px] flex-shrink-0;
-    background: linear-gradient(135deg, #7B61FF, #4FACFE);
+    @apply inline-flex items-center justify-center rounded-[18px] flex-shrink-0 text-white;
+    background: var(--color-accent);
+    box-shadow: 0 4px 14px rgba(128, 0, 0, 0.15);
   }
 
   .icon-box--success {
-    @apply inline-flex items-center justify-center rounded-[18px] flex-shrink-0;
-    background: linear-gradient(135deg, #00D4AA, #00A896);
+    @apply inline-flex items-center justify-center rounded-[18px] flex-shrink-0 text-white;
+    background: var(--color-success);
+  }
+  
+  .icon-box--warning {
+    @apply inline-flex items-center justify-center rounded-[18px] flex-shrink-0 text-white;
+    background: var(--color-warning);
   }
 
   /* Green-Yellow Gradient for Session Info Boxes */
@@ -323,27 +313,17 @@
     @apply text-4xl font-black tracking-[12px] text-black;
   }
 
-  /* Gradient Text */
+  /* Gradient Text Removed for Professionalism */
   .gradient-text {
-    background: linear-gradient(135deg, #4FACFE, #00F2FE);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-primary);
   }
 
-  /* Yellow-Blue-Green Gradient Text */
   .gradient-text-ybg {
-    background: linear-gradient(135deg, #FFD700 0%, #4FACFE 50%, #00D4AA 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-primary);
   }
 
   .gradient-icon-red {
-    background: linear-gradient(135deg, #F87171 0%, #DC2626 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-error);
   }
 
   /* Info Banner - Adjusted for Light Theme */
@@ -481,9 +461,8 @@
 
   /* Success Circle */
   .success-circle {
-    @apply w-24 h-24 rounded-full flex items-center justify-center mx-auto text-5xl;
-    background: linear-gradient(135deg, #00D4AA, #00A896);
-    box-shadow: 0 10px 30px rgba(0, 212, 170, 0.35);
+    @apply w-24 h-24 rounded-full flex items-center justify-center mx-auto text-5xl bg-[--color-success] text-white;
+    box-shadow: 0 10px 30px rgba(21, 128, 61, 0.2);
   }
 }
 
@@ -679,19 +658,14 @@
   box-shadow: 0 0 20px rgba(79, 172, 254, 0.2);
 }
 
-/* Animated gradient buttons */
+/* Disabled button gradients */
 .btn-gradient {
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
-  box-shadow: 0 8px 20px rgba(79, 172, 254, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background-size: auto;
+  animation: none;
 }
-
 .btn-gradient-accent {
-  background: linear-gradient(135deg, #7B61FF 0%, #4FACFE 100%);
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
-  box-shadow: 0 8px 20px rgba(123, 97, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background-size: auto;
+  animation: none;
 }
 
 /* Enhanced alerts with animation */

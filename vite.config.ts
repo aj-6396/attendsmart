@@ -4,20 +4,20 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa'; // <-- 1. Import the PWA plugin
 
-export default defineConfig(({mode}) => {
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [
-      react(), 
+      react(),
       tailwindcss(),
       // <-- 2. Add the VitePWA configuration here
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'AttendSmart',      // Change this to your app's name
-          short_name: 'AttendSmart', // Change this to your app's short name
+          name: 'Class Mark',      // Change this to your app's name
+          short_name: 'Class Mark', // Change this to your app's short name
           description: 'A smart attendance management system for educational institutions.', // Change this to your app's description
-          theme_color: '##1e2bdb',     // Change to match your brand color
+          theme_color: '#1e2bdb',     // Change to match your brand color
           icons: [
             {
               src: 'pwa-192x192.png',

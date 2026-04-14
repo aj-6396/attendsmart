@@ -31,8 +31,8 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
           <div className="icon-box--sm icon-box--primary">
             <ShieldCheck className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl sm:text-2xl font-black gradient-text-ybg tracking-tight">
-            AttendSmart
+          <span className="text-xl sm:text-2xl font-bold text-[--color-primary] dark:text-white tracking-tight">
+            Class Mark
           </span>
         </div>
         <button
@@ -55,7 +55,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
           Choose Your Role
         </h1>
         <p className="text-[--color-text-secondary] text-sm sm:text-base max-w-xl mx-auto">
-          Select how you want to access AttendSmart
+          Select how you want to access Class Mark
         </p>
       </motion.div>
 
@@ -71,8 +71,8 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
           onClick={() => onSelectRole('student')}
           className="group relative overflow-hidden"
         >
-          {/* Animated gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          {/* Card background hover */}
+          <div className="absolute inset-0 bg-[--color-primary] opacity-0 group-hover:opacity-5 transition-opacity duration-500" />
           
           {/* Glass card */}
           <div className="relative glass-card p-6 sm:p-8 h-full flex flex-col items-center justify-center border-2 border-[--color-glass-border] group-hover:border-[--color-primary]/50 transition-all duration-500">
@@ -82,7 +82,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
               transition={{ type: "spring", stiffness: 300, damping: 10 }}
               className="mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[--color-primary] to-[--color-secondary] flex items-center justify-center shadow-lg shadow-[--color-primary]/20 group-hover:shadow-2xl group-hover:shadow-[--color-primary]/40 transition-all duration-500">
+              <div className="w-20 h-20 rounded-2xl bg-[--color-primary] flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500">
                 <GraduationCap className="w-10 h-10 text-white" />
               </div>
             </motion.div>
@@ -116,8 +116,8 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
           onClick={() => onSelectRole('teacher')}
           className="group relative overflow-hidden"
         >
-          {/* Animated gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          {/* Card background hover */}
+          <div className="absolute inset-0 bg-[--color-secondary] opacity-0 group-hover:opacity-5 transition-opacity duration-500" />
           
           {/* Glass card */}
           <div className="relative glass-card p-6 sm:p-8 h-full flex flex-col items-center justify-center border-2 border-[--color-glass-border] group-hover:border-[--color-accent]/50 transition-all duration-500">
@@ -127,7 +127,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
               transition={{ type: "spring", stiffness: 300, damping: 10 }}
               className="mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[--color-accent] to-purple-500 flex items-center justify-center shadow-lg shadow-[--color-accent]/20 group-hover:shadow-2xl group-hover:shadow-[--color-accent]/40 transition-all duration-500">
+              <div className="w-20 h-20 rounded-2xl bg-[--color-secondary] flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500">
                 <BookOpen className="w-10 h-10 text-white" />
               </div>
             </motion.div>
@@ -152,17 +152,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
         </motion.button>
       </div>
 
-      {/* Floating Elements for visual interest */}
-      <motion.div
-        animate={{ y: [0, 20, 0] }}
-        transition={{ duration: 4, repeat: Infinity }}
-        className="hidden sm:block fixed bottom-10 left-10 w-40 h-40 bg-gradient-to-br from-[--color-primary]/10 to-[--color-secondary]/5 rounded-full blur-3xl pointer-events-none"
-      />
-      <motion.div
-        animate={{ y: [0, -20, 0] }}
-        transition={{ duration: 5, repeat: Infinity }}
-        className="hidden sm:block fixed top-10 right-10 w-32 h-32 bg-gradient-to-br from-[--color-accent]/10 to-pink-500/5 rounded-full blur-3xl pointer-events-none"
-      />
+      {/* Clean background without floating elements */}
     </div>
   );
 }

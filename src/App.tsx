@@ -570,7 +570,7 @@ export default function App() {
           </div>
 
           <div className="flex-1 text-center">
-            <span className="text-xl font-black gradient-text-ybg tracking-tight">AttendSmart</span>
+            <span className="text-xl font-bold text-[--color-primary] dark:text-white tracking-tight">Class Mark</span>
           </div>
 
           <button

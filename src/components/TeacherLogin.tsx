@@ -37,8 +37,8 @@ export default function TeacherLogin({
         <div className="icon-box--sm icon-box--primary">
           <ShieldCheck className="w-4 h-4 text-white" />
         </div>
-        <span className="text-lg sm:text-xl font-black gradient-text-ybg tracking-tight">
-          AttendSmart
+        <span className="text-lg sm:text-xl font-bold text-[--color-primary] dark:text-white tracking-tight">
+          Class Mark
         </span>
       </div>
 
