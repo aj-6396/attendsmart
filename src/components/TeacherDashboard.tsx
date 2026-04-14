@@ -329,11 +329,15 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
       
       console.log('DEBUG: Enrollments fetched:', enrollments);
 
-      const enrolledStudents = (enrollments || []).map((e: any) => ({
-        id: e.users?.id,
-        name: e.users?.name,
-        profile: e.users?.student_profiles?.[0]
-      })).filter((s: any) => s.id);
+      const enrolledStudents = (enrollments || []).map((e: any) => {
+        // Handle cases where users might be returned as an array or a single object
+        const userData = Array.isArray(e.users) ? e.users[0] : e.users;
+        return {
+          id: userData?.id,
+          name: userData?.name,
+          profile: userData?.student_profiles?.[0]
+        };
+      }).filter((s: any) => s.id);
 
       console.log('DEBUG: Enrolled Students Mapped:', enrolledStudents);
 
