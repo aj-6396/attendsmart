@@ -5,6 +5,8 @@ import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, M
 import { getAveragedPosition } from '../lib/geo';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Session {
   id: string;
@@ -254,6 +256,116 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
       setLoading(false);
     }
   };
+
+  const exportRegisterPDF = async () => {
+    if (!activeClass) return;
+    setLoading(true);
+    try {
+      // 1. Fetch data with explicit aliases and defensive selection
+      const { data: enrollmentData } = await supabase
+        .from('class_enrollments')
+        .select(`
+          student_id,
+          users:student_id(
+            id,
+            name,
+            student_profiles(
+              enrollment_no,
+              exam_roll_no,
+              course,
+              semester
+            )
+          )
+        `)
+        .eq('class_id', activeClass.id);
+
+      const { data: sessions } = await supabase
+        .from('attendance_sessions')
+        .select('id, created_at')
+        .eq('class_id', activeClass.id)
+        .order('created_at', { ascending: true });
+
+      const { data: attendanceRecords } = await supabase
+        .from('attendance_records')
+        .select('student_id, session_id')
+        .in('session_id', sessions?.map(s => s.id) || ['00000000-0000-0000-0000-000000000000']);
+
+      if (!enrollmentData || !sessions) throw new Error('Insufficient data for PDF generation');
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      
+      // Header Section
+      doc.setFontSize(22);
+      doc.setTextColor(79, 70, 229); // indigo-600
+      doc.text('Attendance Register Report', 14, 20);
+      
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42); // slate-900
+      doc.text(`Class: ${activeClass.name}`, 14, 28);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.text(`Generated on: ${format(new Date(), 'PPPP p')}`, 14, 34);
+      doc.text(`Join Code: ${activeClass.join_code}`, 14, 38);
+
+      // Table Generation
+      const sessionDates = sessions.map(s => format(new Date(s.created_at), 'MMM dd\nHH:mm'));
+      const head = [['S.No', 'Student Information', 'Enrollment', 'Roll No', ...sessionDates, 'Score']];
+      
+      const body = enrollmentData.map((e: any, index: number) => {
+        const student = Array.isArray(e.users) ? e.users[0] : e.users;
+        const profile = Array.isArray(student?.student_profiles) 
+          ? student?.student_profiles[0] 
+          : student?.student_profiles;
+
+        const sessionAttendance = sessions.map(s => {
+          const present = attendanceRecords?.some(r => r.student_id === e.student_id && r.session_id === s.id);
+          return present ? 'P' : 'A';
+        });
+
+        const presentCount = sessionAttendance.filter(v => v === 'P').length;
+        const perc = sessions.length > 0 ? Math.round((presentCount / sessions.length) * 100) : 0;
+
+        return [
+          index + 1,
+          { content: student?.name || 'Unknown', styles: { fontStyle: 'bold' } },
+          profile?.enrollment_no || 'N/A',
+          profile?.exam_roll_no || 'N/A',
+          ...sessionAttendance,
+          `${perc}%`
+        ];
+      });
+
+      autoTable(doc, {
+        head,
+        body,
+        startY: 45,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontSize: 8, halign: 'center' },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 'auto', halign: 'left' },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 25, halign: 'center' },
+          [head[0].length - 1]: { halign: 'center', fontStyle: 'bold' }
+        },
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', halign: 'center' },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.cell.text[0] === 'P') data.cell.styles.textColor = [16, 185, 129];
+          if (data.section === 'body' && data.cell.text[0] === 'A') data.cell.styles.textColor = [239, 68, 68];
+        }
+      });
+
+      doc.save(`Attendance_${activeClass.name.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      setSuccess('PDF Report generated successfully!');
+    } catch (err: any) {
+      console.error('PDF Export Error:', err);
+      setError('Failed to generate PDF: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   useEffect(() => {
     if (!activeClass) return;
@@ -889,12 +1001,21 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
                            />
                         </div>
                         <button 
-                         onClick={exportFullRegister} 
+                         onClick={exportRegisterPDF} 
                          disabled={loading || filteredStudents.length === 0}
-                         className="flex items-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all font-bold text-sm shadow-lg shadow-indigo-100 disabled:opacity-50"
+                         className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all font-black text-sm shadow-xl shadow-slate-200 disabled:opacity-50"
                         >
                            <Download className="w-5 h-5" />
-                           Export Register
+                           Download PDF
+                        </button>
+                        <button 
+                         onClick={exportFullRegister} 
+                         disabled={loading || filteredStudents.length === 0}
+                         className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all font-bold text-sm"
+                         title="Export CSV"
+                        >
+                           <Folder className="w-5 h-5" />
+                           CSV
                         </button>
                         <button onClick={fetchAllStudentStats} className={cn("p-3 bg-slate-50 rounded-2xl hover:bg-indigo-50 transition-colors", loading && "animate-spin")}>
                            <RefreshCw className="w-5 h-5 text-indigo-600" />
