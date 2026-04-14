@@ -82,7 +82,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
               transition={{ type: "spring", stiffness: 300, damping: 10 }}
               className="mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl bg-[--color-primary] flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500">
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500" style={{ backgroundColor: "var(--color-primary)" }}>
                 <GraduationCap className="w-10 h-10 text-white" />
               </div>
             </motion.div>
@@ -127,7 +127,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
               transition={{ type: "spring", stiffness: 300, damping: 10 }}
               className="mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl bg-[--color-secondary] flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500">
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500" style={{ backgroundColor: "var(--color-secondary)" }}>
                 <BookOpen className="w-10 h-10 text-white" />
               </div>
             </motion.div>

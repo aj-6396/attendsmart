@@ -16,7 +16,7 @@
     --color-warning: #d97706; /* Amber */
     
     /* Light Backgrounds with Subtle Structure */
-    --color-bg: #F8FAFC; /* Slate 50 */
+    --color-bg: #e2e8f0; /* Slate 200 for better contrast against white cards */
     --color-surface: rgba(255, 255, 255, 0.95);
     
     /* Clear Text Colors */
@@ -28,7 +28,7 @@
     --color-glass-border: rgba(0, 33, 71, 0.1);
   }
 
-  .dark {
+  :root.dark {
     /* Dark Mode Colors - Deep Midnight */
     --color-primary: #3b82f6; /* Lighter blue for dark mode visibility */
     --color-secondary: #FBBF24; /* Brighter gold */
@@ -71,14 +71,19 @@
 @layer components {
   /* Subtle Background Grid */
   .animated-bg {
-    @apply fixed inset-0 z-0 pointer-events-none;
+    @apply relative z-0 overflow-hidden;
     background-color: var(--color-bg);
+  }
+  
+  .animated-bg::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none z-[-1];
     background-image: linear-gradient(rgba(0, 33, 71, 0.03) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 33, 71, 0.03) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 
-  .dark .animated-bg {
+  .dark .animated-bg::before {
     background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   }
