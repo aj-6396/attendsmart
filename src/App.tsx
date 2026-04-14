@@ -438,7 +438,13 @@ export default function App() {
                         required
                       >
                         <option value="">Select</option>
-                        {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={`${s}`}>{s}st</option>)}
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(s => {
+                          let suffix = 'th';
+                          if (s === 1) suffix = 'st';
+                          else if (s === 2) suffix = 'nd';
+                          else if (s === 3) suffix = 'rd';
+                          return <option key={s} value={`${s}`}>{s}{suffix}</option>
+                        })}
                       </select>
                     </div>
                   </motion.div>
@@ -480,6 +486,9 @@ export default function App() {
                         <option value="A">A</option>
                         <option value="B">B</option>
                         <option value="C">C</option>
+                        <option value="M1">M1</option>
+                        <option value="M2">M2</option>
+                        <option value="M3">M3</option>
                       </select>
                     </div>
                     <div className="field-group">
@@ -586,33 +595,39 @@ export default function App() {
   return (
     <div className="page animated-bg">
       <div className="dot-grid" />
-      <header className="glass-card sticky top-4 z-50 mx-4 mt-4 rounded-[20px]">
-        <div className="px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="icon-box--md icon-box--primary">
-              <ShieldCheck className="w-5 h-5 text-white" />
+      {/* Only show global header for students or logged-out users */}
+      {(!profile || profile.role === 'student') && (
+        <header className="glass-card sticky top-4 z-50 mx-4 mt-4 rounded-[20px]">
+          <div className="px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="icon-box--md icon-box--primary">
+                <ShieldCheck className="w-5 h-5 text-white" />
+              </div>
             </div>
+
+            <div className="flex-1 text-center">
+              <span className="text-xl font-bold text-[--color-primary] dark:text-white tracking-tight">Class Mark</span>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="icon-btn hover:text-[--color-error]"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
+        </header>
+      )}
 
-          <div className="flex-1 text-center">
-            <span className="text-xl font-bold text-[--color-primary] dark:text-white tracking-tight">Class Mark</span>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="icon-btn hover:text-[--color-error]"
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
-
-      <main className="container-app max-w-7xl mx-auto relative z-10 py-8">
+      <main className={cn(
+        "container-app max-w-7xl mx-auto relative py-8",
+        (profile?.role === 'admin' || profile?.role === 'teacher') ? "px-4" : ""
+      )}>
         {profile?.role === 'admin' ? (
-          <AdminDashboard user={session.user} profile={profile} />
+          <AdminDashboard user={session.user} profile={profile} onLogout={handleLogout} />
         ) : profile?.role === 'teacher' ? (
-          <TeacherDashboard user={session.user} profile={profile} />
+          <TeacherDashboard user={session.user} profile={profile} onLogout={handleLogout} />
         ) : (
           <StudentDashboard user={session.user} profile={profile!} />
         )}

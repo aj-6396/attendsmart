@@ -1,7 +1,28 @@
--- 1. Add Security Column for Device Locking
+-- 1. Helper functions for RLS (Required for the policies below)
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION is_teacher()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM users
+    WHERE id = auth.uid() AND role = 'teacher'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 2. Add Security Column for Device Locking
 ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS device_id TEXT;
 
--- 2. Clear old test data (ONLY Attendance, NOT Users)
+-- 3. Clear old test data (ONLY Attendance, NOT Users)
 -- TRUNCATE TABLE attendance_records CASCADE;
 -- TRUNCATE TABLE attendance_sessions CASCADE;
 
@@ -10,7 +31,7 @@ CREATE TABLE IF NOT EXISTS classes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   join_code TEXT UNIQUE NOT NULL,
-  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_by UUID DEFAULT auth.uid() REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -42,24 +63,44 @@ ALTER TABLE class_enrollments ENABLE ROW LEVEL SECURITY;
 
 -- 6. Define Policies
 
--- Classes: Viewable if you are a teacher of the class, a student enrolled, or an admin
+DROP POLICY IF EXISTS "Classes viewable by related users" ON classes;
 CREATE POLICY "Classes viewable by related users" ON classes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM class_teachers WHERE class_id = id AND teacher_id = auth.uid()) OR
-  EXISTS (SELECT 1 FROM class_enrollments WHERE class_id = id AND student_id = auth.uid()) OR
-  (auth.uid() = created_by) OR
-  is_admin() OR is_teacher() -- Temporarily allow teachers to see classes to join them as co-teachers
+  auth.role() = 'authenticated'
 );
 
+DROP POLICY IF EXISTS "Teachers can create classes" ON classes;
 CREATE POLICY "Teachers can create classes" ON classes FOR INSERT WITH CHECK (is_teacher() OR is_admin());
 
+DROP POLICY IF EXISTS "Classes managed by related creators" ON classes;
+CREATE POLICY "Classes managed by related creators" ON classes FOR DELETE USING (
+  (auth.uid() = created_by) OR is_admin()
+);
+
 -- Class Teachers:
-CREATE POLICY "Class teachers viewable by related" ON class_teachers FOR SELECT USING (true);
-CREATE POLICY "Class teachers managed by creators" ON class_teachers FOR ALL USING (
+DROP POLICY IF EXISTS "Class teachers viewable by related" ON class_teachers;
+DROP POLICY IF EXISTS "Class teachers viewable by all" ON class_teachers;
+CREATE POLICY "Class teachers viewable by all" ON class_teachers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Class teachers managed by creators" ON class_teachers;
+DROP POLICY IF EXISTS "Class teachers managed by creators - insert" ON class_teachers;
+DROP POLICY IF EXISTS "Class teachers managed by creators - update" ON class_teachers;
+DROP POLICY IF EXISTS "Class teachers managed by creators - delete" ON class_teachers;
+
+CREATE POLICY "Class teachers managed by creators - insert" ON class_teachers FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM classes WHERE id = class_id AND created_by = auth.uid()) OR is_admin()
+);
+CREATE POLICY "Class teachers managed by creators - update" ON class_teachers FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM classes WHERE id = class_id AND created_by = auth.uid()) OR is_admin()
+);
+CREATE POLICY "Class teachers managed by creators - delete" ON class_teachers FOR DELETE USING (
   EXISTS (SELECT 1 FROM classes WHERE id = class_id AND created_by = auth.uid()) OR is_admin()
 );
 
 -- Class Enrollments:
+DROP POLICY IF EXISTS "Enrollments viewable by specific" ON class_enrollments;
 CREATE POLICY "Enrollments viewable by specific" ON class_enrollments FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Students can enroll themselves" ON class_enrollments;
 CREATE POLICY "Students can enroll themselves" ON class_enrollments FOR INSERT WITH CHECK (
   auth.uid() = student_id OR is_admin()
 );

@@ -8,3 +8,4 @@ coverage/
 !.env.example
 server.ts
 .vercel
+.env*.local

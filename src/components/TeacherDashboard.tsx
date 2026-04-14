@@ -45,7 +45,7 @@ interface StudentStats {
   attendance_percentage: number;
 }
 
-export default function TeacherDashboard({ user, profile }: { user: any; profile: any }) {
+export default function TeacherDashboard({ user, profile, onLogout }: { user: any; profile: any; onLogout: () => void }) {
   const [classes, setClasses] = useState<any[]>([]);
   const [activeClass, setActiveClass] = useState<any | null>(null);
   const [showCreateClass, setShowCreateClass] = useState(false);
@@ -135,6 +135,10 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
+    setSuccess(null);
+    console.log('Attempting to create class:', newClassName);
+    
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     const { data, error } = await supabase.from('classes').insert({
        name: newClassName,
@@ -142,14 +146,90 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
        created_by: user.id
     }).select().single();
     
-    if (error) setError(error.message);
-    else {
+    if (error) {
+       console.error('Class creation error:', error);
+       setError(error.message);
+    } else {
+       console.log('Class created successfully:', data);
        setClasses(prev => [...prev, data]);
        setShowCreateClass(false);
        setNewClassName('');
        setSuccess('Class created successfully! Join code: ' + code);
     }
     setLoading(false);
+  };
+
+  const exportFullRegister = async () => {
+    if (!activeClass) return;
+    setLoading(true);
+    try {
+      // 1. Fetch all students in the class
+      const { data: enrollmentData } = await supabase
+        .from('class_enrollments')
+        .select('student_id, users(name, student_profiles(enrollment_no, exam_roll_no))')
+        .eq('class_id', activeClass.id);
+
+      // 2. Fetch all sessions for this class
+      const { data: sessions } = await supabase
+        .from('attendance_sessions')
+        .select('id, created_at')
+        .eq('class_id', activeClass.id)
+        .order('created_at', { ascending: true });
+
+      // 3. Fetch all attendance records for this class
+      const { data: attendanceRecords } = await supabase
+        .from('attendance_records')
+        .select('student_id, session_id')
+        .in('session_id', sessions?.map(s => s.id) || []);
+
+      if (!enrollmentData || !sessions) throw new Error('No data found for export');
+
+      // Create CSV
+      const sessionDates = sessions.map(s => format(new Date(s.created_at), 'MMM dd HH:mm'));
+      const headers = ['Student Name', 'Enrollment No', 'Exam Roll No', ...sessionDates, 'Total Present', '%'];
+      
+      const rows = enrollmentData.map((e: any) => {
+        const student = e.users;
+        const profile = student.student_profiles?.[0];
+        const studentAttendance = sessions.map(s => {
+          const isPresent = attendanceRecords?.some(r => r.student_id === e.student_id && r.session_id === s.id);
+          return isPresent ? 'P' : 'A';
+        });
+        
+        const attendedCount = studentAttendance.filter(v => v === 'P').length;
+        const percentage = Math.round((attendedCount / sessions.length) * 100);
+        
+        return [
+          student.name,
+          profile?.enrollment_no || 'N/A',
+          profile?.exam_roll_no || 'N/A',
+          ...studentAttendance,
+          attendedCount,
+          `${percentage}%`
+        ];
+      });
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(r => r.join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Attendance_${activeClass.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setSuccess('Register exported successfully!');
+    } catch (err: any) {
+      console.error('Export error:', err);
+      setError('Failed to export register: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -385,535 +465,473 @@ export default function TeacherDashboard({ user, profile }: { user: any; profile
     document.body.removeChild(link);
   };
 
-
-  if (!activeClass) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold flex items-center gap-2 text-slate-900">
-            <Folder className="w-6 h-6 text-indigo-600" />
-            My Classes
-          </h2>
-          <button onClick={() => setShowCreateClass(true)} className="btn-gradient px-4 py-2 flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            Create Class
-          </button>
-        </div>
-
-        {showCreateClass && (
-          <div className="glass-card p-6 border-indigo-100">
-            <h3 className="font-bold mb-4">Create New Class</h3>
-            <form onSubmit={handleCreateClass} className="flex gap-4">
-              <input 
-                type="text" 
-                value={newClassName} 
-                onChange={e => setNewClassName(e.target.value)} 
-                placeholder="e.g. Physics 101 - Semester 1" 
-                className="field-input flex-1" 
-                required 
-              />
-              <button disabled={loading} type="submit" className="btn-gradient w-32">
-                {loading ? <Loader2 className="animate-spin mx-auto"/> : 'Create'}
-              </button>
-              <button type="button" onClick={() => setShowCreateClass(false)} className="px-4 py-2 border rounded-xl hover:bg-slate-50">Cancel</button>
-            </form>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map(c => (
-             <div key={c.id} onClick={() => setActiveClass(c)} className="glass-card p-6 cursor-pointer hover:border-indigo-300 transition-all hover:shadow-xl group">
-               <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Folder className="w-6 h-6 text-indigo-600" />
-               </div>
-               <h3 className="text-lg font-bold text-slate-900 mb-2">{c.name}</h3>
-               <div className="flex gap-2">
-                 <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded">Code: {c.join_code}</span>
-                 {c.created_by !== user.id && <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded">Co-Teacher</span>}
-               </div>
-             </div>
-          ))}
-          {classes.length === 0 && !showCreateClass && (
-             <div className="col-span-full py-12 text-center text-slate-500 italic">
-               You haven't created any classes yet.
-             </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100">
-         <div className="flex items-center gap-4">
-           <button onClick={() => setActiveClass(null)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-600">
-              <ArrowLeftIcon className="w-5 h-5" />
-           </button>
-           <div>
-             <h2 className="text-xl font-bold text-slate-900">{activeClass.name}</h2>
-             <p className="text-xs text-slate-500 font-mono tracking-wider">Class Code: {activeClass.join_code}</p>
-           </div>
-         </div>
-      </div>
-
-      {/* Status Messages */}
-      {(error || success) && (
-        <div className="fixed top-20 right-4 z-[60] max-w-sm w-full animate-in slide-in-from-right">
-          {error && (
-            <div className="alert alert--error">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-              <button onClick={() => setError(null)} className="ml-auto text-[--color-text-secondary] hover:text-[--color-text-primary]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-          {success && (
-            <div className="glass-card--success border-l-4 p-4 flex items-center gap-3 mt-2">
-              <CheckCircle2 className="w-5 h-5 text-[--color-success] flex-shrink-0" />
-              <p className="text-sm text-[--color-success]">{success}</p>
-              <button onClick={() => setSuccess(null)} className="ml-auto text-[--color-text-secondary] hover:text-[--color-text-primary]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setActiveTab('session')}
-          className={cn(
-            "px-6 py-2 text-sm font-bold rounded-[12px] transition-all flex items-center gap-2",
-            activeTab === 'session' 
-              ? "glass-card bg-white/[0.15] text-[--color-primary]" 
-              : "text-[--color-text-secondary] hover:text-[--color-text-primary]"
-          )}
-        >
-          <Clock className="w-4 h-4" />
-          Live Session
-        </button>
-        <button
-          onClick={() => setActiveTab('records')}
-          className={cn(
-            "px-6 py-2 text-sm font-bold rounded-[12px] transition-all flex items-center gap-2",
-            activeTab === 'records' 
-              ? "glass-card bg-white/[0.15] text-[--color-primary]" 
-              : "text-[--color-text-secondary] hover:text-[--color-text-primary]"
-          )}
-        >
-          <BarChart3 className="w-4 h-4" />
-          Student Records
-        </button>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {activeTab === 'session' ? (
-          <motion.div
-            key="session-tab"
-            initial={{ opacity: 0, y: 10 }}
+    <div className="space-y-8 page-container">
+      {/* Global Status Messages */}
+      <AnimatePresence>
+        {(error || success) && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-8"
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 right-4 z-[100] max-w-sm w-full"
           >
-            <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-[--color-text-primary] flex items-center gap-2">
-                  <Clock className="w-6 h-6 text-[--color-primary]" />
-                  Active Session
-                </h2>
-                {!activeSession && (
-                  <button
-                    onClick={createSession}
-                    disabled={loading}
-                    className="btn-gradient disabled:opacity-50 px-4 py-2 flex items-center gap-2"
-                  >
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        {samplingProgress ? `Sampling ${samplingProgress.current}/${samplingProgress.total}...` : 'Starting...'}
-                      </div>
-                    ) : (
-                      <>
-                        <Plus className="w-5 h-5" />
-                        Start New Session
-                      </>
-                    )}
-                  </button>
-                )}
+            {error && (
+              <div className="alert alert--error shadow-2xl">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <p className="text-sm">{error}</p>
+                <button onClick={() => setError(null)} className="ml-auto">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-
-              {locationPermission === 'denied' && (
-                <div className="alert alert--error mb-6">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-sm font-bold">Location Access Denied</h4>
-                    <p className="text-xs mt-1">
-                      You have denied location access. Please enable location services for this app in your device settings or browser settings to start a session.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {locationPermission === 'prompt' && (
-                <div className="alert alert--warning mb-6">
-                  <MapPin className="w-5 h-5 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-sm font-bold">Location Access Required</h4>
-                    <p className="text-xs mt-1 mb-2">
-                      We need your location to set the classroom boundary for students.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.geolocation.getCurrentPosition(
-                          () => setLocationPermission('granted'),
-                          (err) => {
-                            console.error("Geolocation error:", err);
-                            if (err.code === err.PERMISSION_DENIED) {
-                              setLocationPermission('denied');
-                            }
-                          },
-                          { enableHighAccuracy: true }
-                        );
-                      }}
-                      className="text-xs font-bold bg-[--color-warning]/30 text-[--color-warning] px-3 py-1.5 rounded-lg hover:bg-[--color-warning]/50 transition-colors"
-                    >
-                      Grant Permission
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <AnimatePresence mode="wait">
-                {activeSession ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="glass-card overflow-hidden"
-                  >
-                    <div className="bg-gradient-to-r from-green-400 to-yellow-400 p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div>
-                        <p className="text-white/80 text-sm font-medium uppercase tracking-wider mb-1">Current OTP</p>
-                        <h3 className="otp-display">{activeSession.otp}</h3>
-                      </div>
-                      <div className="flex flex-wrap gap-4">
-                        <div className="session-info-box">
-                          <MapPin className="w-5 h-5 text-slate-700" />
-                          <div>
-                            <p className="text-[10px] text-slate-700 uppercase font-bold">Accuracy</p>
-                            <p className="font-mono font-bold text-slate-700">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : 'N/A'}</p>
-                          </div>
-                        </div>
-                        <div className="session-info-box">
-                          <Clock className="w-5 h-5 text-slate-700" />
-                          <div>
-                            <p className="text-[10px] text-slate-700 uppercase font-bold">Expires At</p>
-                            <p className="font-mono font-bold text-slate-700">{format(new Date(activeSession.expires_at), 'HH:mm')}</p>
-                          </div>
-                        </div>
-                        <div className="session-info-box">
-                          <Users className="w-5 h-5 text-slate-700" />
-                          <div>
-                            <p className="text-[10px] text-slate-700 uppercase font-bold">Present</p>
-                            <p className="font-mono font-bold text-slate-700">{attendance.length}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => endSession(activeSession.id)}
-                        className="bg-white text-indigo-600 hover:bg-indigo-50 px-6 py-3 rounded-xl font-bold transition-colors shadow-lg"
-                      >
-                        End Session
-                      </button>
-                    </div>
-
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-bold text-slate-900">Live Attendance List</h4>
-                        <button 
-                          onClick={exportAttendance}
-                          disabled={attendance.length === 0}
-                          className="text-indigo-600 hover:text-indigo-700 flex items-center gap-2 text-sm font-semibold disabled:opacity-50"
-                        >
-                          <Download className="w-4 h-4" />
-                          Export CSV
-                        </button>
-                      </div>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                          <thead>
-                            <tr className="text-slate-400 text-xs uppercase font-bold border-b border-slate-100">
-                              <th className="pb-3 pl-2">Student</th>
-                              <th className="pb-3">Enrollment No</th>
-                              <th className="pb-3">Exam Roll No</th>
-                              <th className="pb-3 text-right pr-2">Time</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-50">
-                            {attendance.length > 0 ? (
-                              attendance.map((record) => (
-                                <motion.tr 
-                                  key={record.id}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  className="group hover:bg-slate-50 transition-colors"
-                                >
-                                  <td className="py-3 pl-2 font-medium text-slate-900">{record.users.name}</td>
-                                  <td className="py-3 text-slate-500 text-sm">{(record.users.student_profiles as any)?.[0]?.enrollment_no || 'N/A'}</td>
-                                  <td className="py-3 text-slate-500 text-sm">{(record.users.student_profiles as any)?.[0]?.exam_roll_no || 'N/A'}</td>
-                                  <td className="py-3 text-right pr-2 text-slate-400 text-sm font-mono">
-                                    {format(new Date(record.created_at), 'HH:mm:ss')}
-                                  </td>
-                                </motion.tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan={4} className="py-8 text-center text-slate-400 italic">
-                                  Waiting for students to join...
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Users className="w-8 h-8 text-slate-400" />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">No Active Session</h3>
-                    <p className="text-slate-500 mb-6 max-w-xs mx-auto">Start a new session to generate an OTP and allow students to mark their attendance.</p>
-                    {error && (
-                      <div className="mb-6 p-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-center gap-2 justify-center max-w-md mx-auto">
-                        <AlertCircle className="w-4 h-4" />
-                        {error}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </AnimatePresence>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2 mb-6">
-                <History className="w-6 h-6 text-indigo-600" />
-                Recent History
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sessions.filter(s => !s.active || new Date(s.expires_at) < new Date()).slice(0, 6).map((session) => (
-                  <div key={session.id} className="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        {format(new Date(session.created_at), 'MMM dd, yyyy')}
-                      </span>
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold uppercase">
-                        Expired
-                      </span>
-                    </div>
-                    <div className="flex items-end justify-between">
-                      <div>
-                        <p className="text-slate-500 text-xs mb-1">OTP Used</p>
-                        <p className="text-xl font-bold text-slate-900 font-mono">{session.otp}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-slate-500 text-xs mb-1">Time</p>
-                        <p className="text-sm font-medium text-slate-700">{format(new Date(session.created_at), 'HH:mm')}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            )}
+            {success && (
+              <div className="glass-card--success border-l-4 p-4 flex items-center gap-3 shadow-2xl">
+                <CheckCircle2 className="w-5 h-5 text-[--color-success] flex-shrink-0" />
+                <p className="text-sm text-[--color-success]">{success}</p>
+                <button onClick={() => setSuccess(null)} className="ml-auto">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            </section>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="records-tab"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-6"
-          >
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-              <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Student Attendance Overview</h3>
-                  <p className="text-slate-500 text-xs mt-1">
-                    {activeSession 
-                      ? `Live Session Active: ${activeSession.otp}` 
-                      : "No active session. Start one to mark manual attendance."}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input 
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search students..."
-                      className="pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-48"
-                    />
-                  </div>
-                  <button 
-                    onClick={fetchAllStudentStats}
-                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                    title="Refresh Data"
-                  >
-                    <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="text-slate-400 text-xs uppercase font-bold border-b border-slate-100">
-                      <th className="p-6">Student Details</th>
-                      <th className="p-6">Enrollment No</th>
-                      <th className="p-6">Semester</th>
-                      <th className="p-6">Major</th>
-                      <th className="p-6">Attendance</th>
-                      <th className="p-6 text-right">Percentage</th>
-                      <th className="p-6 text-right">Actions {activeSession && <span className="ml-2 text-[10px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full uppercase tracking-wider">Live Session Active</span>}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {filteredStudents.map((student) => (
-                      <tr key={student.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-6">
-                          <div className="font-bold text-slate-900">{student.name}</div>
-                        </td>
-                        <td className="p-6 text-slate-600 font-mono text-sm">{student.enrollment_no}</td>
-                        <td className="p-6 text-slate-600 text-sm">{student.semester || 'N/A'}</td>
-                        <td className="p-6 text-slate-600 text-sm">{student.major_subject || 'N/A'}</td>
-                        <td className="p-6">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-indigo-600">{student.attended_sessions}</span>
-                            <span className="text-xs text-slate-400">/ {student.total_sessions} sessions</span>
-                          </div>
-                        </td>
-                        <td className="p-6 text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
-                              <div 
-                                className={cn(
-                                  "h-full rounded-full transition-all duration-500",
-                                  student.attendance_percentage >= 75 ? "bg-emerald-500" : 
-                                  student.attendance_percentage >= 50 ? "bg-amber-500" : "bg-red-500"
-                                )}
-                                style={{ width: `${student.attendance_percentage}%` }}
-                              />
-                            </div>
-                            <span className={cn(
-                              "text-sm font-black min-w-[3rem]",
-                              student.attendance_percentage >= 75 ? "text-emerald-600" : 
-                              student.attendance_percentage >= 50 ? "text-amber-600" : "text-red-600"
-                            )}>
-                              {Math.round(student.attendance_percentage)}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-6 text-right flex items-center justify-end gap-2">
-                          {activeSession && !attendance.find(a => a.student_id === student.id) && (
-                            <button 
-                              onClick={() => manualMarkAttendance(student.id)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-all border border-emerald-200 text-xs font-bold"
-                              title="Mark Present Manually"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              Mark Present
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => setResettingUserId(student.id)}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                            title="Reset Student Password"
-                          >
-                            <Key className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredStudents.length === 0 && !loading && (
-                      <tr>
-                        <td colSpan={5} className="p-12 text-center text-slate-400 italic">
-                          No student records found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Password Reset Modal */}
-            <AnimatePresence>
-              {resettingUserId && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setResettingUserId(null)}
-                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                  />
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
-                  >
-                    <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-6">
-                      <Key className="w-6 h-6 text-indigo-600" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Reset Student Password</h3>
-                    <p className="text-slate-600 text-sm mb-6">
-                      Enter a new password for this student. They will be able to sign in with this password immediately.
-                    </p>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">New Password (6-digit PIN)</label>
-                        <input 
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                          placeholder="e.g. 123456"
-                          pattern="\d{6}"
-                          maxLength={6}
-                          autoFocus
-                        />
-                      </div>
-                      <div className="flex gap-3 pt-2">
-                        <button 
-                          onClick={() => setResettingUserId(null)}
-                          className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button 
-                          onClick={() => handleResetPassword(resettingUserId)}
-                          disabled={loading || !/^\d{6}$/.test(newPassword)}
-                          className="flex-1 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:bg-indigo-400 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
-                        >
-                          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reset Password'}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-            </AnimatePresence>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {!activeClass ? (
+        <motion.div 
+          key="class-list"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-6"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
+                <Folder className="w-6 h-6 text-white" />
+              </div>
+              My Classes
+            </h2>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setShowCreateClass(true)} 
+                className="btn-gradient px-6 py-2.5 flex items-center gap-2 shadow-lg shadow-indigo-200"
+              >
+                <Plus className="w-5 h-5" />
+                Create Class
+              </button>
+              <button 
+                onClick={onLogout}
+                className="p-2.5 bg-white border border-slate-200 rounded-xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {showCreateClass && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card p-6 border-indigo-100 bg-white/50 backdrop-blur-md"
+            >
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Create New Class</h3>
+              <form onSubmit={handleCreateClass} className="flex flex-col sm:flex-row gap-4">
+                <input 
+                  type="text" 
+                  value={newClassName} 
+                  onChange={e => setNewClassName(e.target.value)} 
+                  placeholder="e.g. Mathematics Sem-2" 
+                  className="field-input flex-1" 
+                  required 
+                />
+                <div className="flex gap-2">
+                  <button disabled={loading} type="submit" className="btn-gradient px-8">
+                    {loading ? <Loader2 className="animate-spin mx-auto w-5 h-5"/> : 'Create'}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowCreateClass(false)} 
+                    className="px-6 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {classes.map(c => (
+               <motion.div 
+                 key={c.id} 
+                 whileHover={{ y: -5 }}
+                 onClick={() => setActiveClass(c)} 
+                 className="glass-card p-6 cursor-pointer hover:border-indigo-400 transition-all hover:shadow-2xl group border-2 border-transparent"
+               >
+                 <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Folder className="w-6 h-6 text-indigo-600" />
+                 </div>
+                 <h3 className="text-xl font-black text-slate-900 mb-2 truncate">{c.name}</h3>
+                 <div className="flex items-center gap-2">
+                   <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-500 px-2 py-1 rounded-md tracking-widest">Code: {c.join_code}</span>
+                   {c.created_by !== user.id && <span className="text-[10px] font-black uppercase bg-indigo-100 text-indigo-600 px-2 py-1 rounded-md tracking-widest">Co-Teacher</span>}
+                 </div>
+               </motion.div>
+            ))}
+            {classes.length === 0 && !showCreateClass && (
+               <div className="col-span-full py-20 text-center glass-card border-dashed border-2">
+                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Folder className="w-8 h-8 text-slate-300" />
+                 </div>
+                 <h3 className="text-slate-900 font-bold">No Classes Yet</h3>
+                 <p className="text-slate-500 text-sm mt-1">Start by creating your first academic class.</p>
+               </div>
+            )}
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div 
+          key="dashboard-view"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-8"
+        >
+          {/* Class Header */}
+          <div className="flex items-center justify-between bg-white px-6 py-5 rounded-3xl shadow-sm border border-slate-100">
+             <div className="flex items-center gap-4">
+               <button 
+                 onClick={() => setActiveClass(null)} 
+                 className="w-10 h-10 flex items-center justify-center hover:bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
+               >
+                  <ArrowLeftIcon className="w-6 h-6" />
+               </button>
+               <div>
+                 <h2 className="text-2xl font-black text-slate-900 leading-none mb-1">{activeClass.name}</h2>
+                 <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Class Access Code:</span>
+                    <span className="text-[11px] font-black text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded">{activeClass.join_code}</span>
+                 </div>
+               </div>
+             </div>
+             <div className="flex items-center gap-2">
+                 <div className="hidden sm:flex flex-col items-end">
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Status</span>
+                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded mt-1">Authorized</span>
+                 </div>
+                 <button 
+                   onClick={onLogout}
+                   className="p-2.5 bg-white border border-slate-100 rounded-xl hover:bg-red-50 transition-all text-slate-400 hover:text-red-600 shadow-sm ml-2"
+                   title="Logout"
+                 >
+                   <LogOut className="w-5 h-5" />
+                 </button>
+             </div>
+          </div>
+
+          <div className="flex gap-2 p-1.5 bg-slate-100/50 rounded-2xl w-fit">
+            <button
+              onClick={() => setActiveTab('session')}
+              className={cn(
+                "px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2",
+                activeTab === 'session' 
+                  ? "bg-white text-indigo-600 shadow-sm" 
+                  : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <Clock className="w-4 h-4" />
+              Live Session
+            </button>
+            <button
+              onClick={() => setActiveTab('records')}
+              className={cn(
+                "px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2",
+                activeTab === 'records' 
+                  ? "bg-white text-indigo-600 shadow-sm" 
+                  : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Records
+            </button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {activeTab === 'session' ? (
+              <motion.div
+                key="session-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-8"
+              >
+                <section>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                       <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                          <Clock className="w-5 h-5 text-indigo-600" />
+                       </div>
+                       Current Session
+                    </h2>
+                    {!activeSession && (
+                      <button
+                        onClick={createSession}
+                        disabled={loading}
+                        className="btn-gradient disabled:opacity-50 px-6 py-2.5 flex items-center gap-2 shadow-lg shadow-indigo-100"
+                      >
+                        {loading ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span className="text-sm font-bold">{samplingProgress ? `${samplingProgress.current}/${samplingProgress.total}` : 'Starting...'}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Plus className="w-5 h-5" />
+                            Start Session
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {activeSession ? (
+                    <div className="glass-card overflow-hidden">
+                      <div className="bg-slate-900 p-8 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                           <Clock className="w-32 h-32" />
+                        </div>
+                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                          <div>
+                            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Entrance Code</p>
+                            <h3 className="text-7xl font-black tracking-tighter text-white font-mono">{activeSession.otp}</h3>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
+                              <MapPin className="w-4 h-4 text-indigo-400 mb-2" />
+                              <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Precision</p>
+                              <p className="text-lg font-black">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : '--'}</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
+                              <Clock className="w-4 h-4 text-amber-400 mb-2" />
+                              <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Ends In</p>
+                              <p className="text-lg font-black font-mono">{format(new Date(activeSession.expires_at), 'HH:mm')}</p>
+                            </div>
+                            <div className="bg-indigo-500 rounded-2xl p-4 shadow-xl shadow-indigo-900/20 col-span-2 sm:col-span-1">
+                              <Users className="w-4 h-4 text-white/80 mb-2" />
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-black">{attendance.length}</span>
+                                <span className="text-[10px] text-white/60 font-black uppercase">Present</span>
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => endSession(activeSession.id)}
+                            className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest"
+                          >
+                            Terminate
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-8">
+                        <div className="flex items-center justify-between mb-6">
+                           <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Presence Log</h4>
+                           <button onClick={exportAttendance} disabled={attendance.length === 0} className="text-xs font-black uppercase text-indigo-600 flex items-center gap-2 hover:bg-indigo-50 px-3 py-2 rounded-lg transition-colors">
+                              <Download className="w-4 h-4" /> Export CSV
+                           </button>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                                <th className="pb-4 text-left">Student Name</th>
+                                <th className="pb-4 text-left">Enrollment</th>
+                                <th className="pb-4 text-left">Log Time</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {attendance.map((record) => (
+                                <tr key={record.id} className="border-b border-slate-50/50 hover:bg-slate-50/50 transition-colors">
+                                  <td className="py-4 font-bold text-slate-900">{record.users.name}</td>
+                                  <td className="py-4 text-slate-500 font-mono text-xs">{(record.users.student_profiles as any)?.[0]?.enrollment_no}</td>
+                                  <td className="py-4 text-right text-slate-400 text-xs font-mono">{format(new Date(record.created_at), 'HH:mm:ss')}</td>
+                                </tr>
+                              ))}
+                              {attendance.length === 0 && (
+                                <tr>
+                                  <td colSpan={3} className="py-12 text-center text-slate-400 italic text-sm">Awaiting first check-in...</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white/50 border-2 border-dashed border-slate-200 rounded-[2rem] p-16 text-center">
+                       <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                          <Users className="w-10 h-10 text-slate-300" />
+                       </div>
+                       <h3 className="text-xl font-black text-slate-900 mb-2">Ready to Start</h3>
+                       <p className="text-slate-500 text-sm max-w-sm mx-auto mb-8">Click start to generate a time-locked entrance code for this specific classroom.</p>
+                       <button onClick={createSession} className="btn-gradient px-10 py-3 shadow-xl shadow-indigo-200">Start Session Now</button>
+                    </div>
+                  )}
+                </section>
+                
+                {/* Secondary History Section in Session Tab */}
+                <section>
+                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                       <History className="w-4 h-4" /> Past Sessions
+                   </h3>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     {sessions.filter(s => !s.active).slice(0, 3).map(s => (
+                        <div key={s.id} className="glass-card p-4 border-slate-100">
+                           <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] font-black text-slate-400">{format(new Date(s.created_at), 'MMM dd')}</span>
+                              <span className="text-xs font-black text-slate-900 font-mono">{s.otp}</span>
+                           </div>
+                           <p className="text-[10px] text-slate-500 uppercase tracking-widest">Legacy Record</p>
+                        </div>
+                     ))}
+                   </div>
+                </section>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="records-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
+                  <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                     <div>
+                        <h3 className="text-xl font-black text-slate-900">Attendance Register</h3>
+                        <p className="text-xs text-slate-500 mt-1 font-medium">Tracking {filteredStudents.length} enrolled students</p>
+                     </div>
+                     <div className="flex items-center gap-4">
+                        <div className="relative group">
+                           <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-600 transition-colors" />
+                           <input 
+                             type="text" 
+                             value={searchQuery}
+                             onChange={e => setSearchQuery(e.target.value)}
+                             placeholder="Search roster..." 
+                             className="pl-11 pr-6 py-3 bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 rounded-2xl text-sm outline-none w-full sm:w-64 transition-all"
+                           />
+                        </div>
+                        <button 
+                         onClick={exportFullRegister} 
+                         disabled={loading || filteredStudents.length === 0}
+                         className="flex items-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all font-bold text-sm shadow-lg shadow-indigo-100 disabled:opacity-50"
+                        >
+                           <Download className="w-5 h-5" />
+                           Export Register
+                        </button>
+                        <button onClick={fetchAllStudentStats} className={cn("p-3 bg-slate-50 rounded-2xl hover:bg-indigo-50 transition-colors", loading && "animate-spin")}>
+                           <RefreshCw className="w-5 h-5 text-indigo-600" />
+                        </button>
+                        <button 
+                         onClick={onLogout}
+                         className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm"
+                         title="Logout"
+                        >
+                           <LogOut className="w-5 h-5" />
+                        </button>
+                     </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-slate-50/50">
+                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-left">Student Information</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-left">Enrollment</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Score</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {filteredStudents.map(student => (
+                          <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-8 py-6">
+                               <div className="text-slate-900 font-bold">{student.name}</div>
+                               <div className="text-[10px] text-slate-400 uppercase font-black mt-1">Sem {student.semester || 'N/A'} • {student.major_subject || 'General'}</div>
+                            </td>
+                            <td className="px-8 py-6 font-mono text-[13px] text-slate-500">{student.enrollment_no}</td>
+                            <td className="px-8 py-6">
+                               <div className="flex flex-col items-center">
+                                  <span className={cn(
+                                    "text-lg font-black",
+                                    student.attendance_percentage >= 75 ? "text-emerald-500" : 
+                                    student.attendance_percentage >= 50 ? "text-amber-500" : "text-red-500"
+                                  )}>
+                                     {Math.round(student.attendance_percentage)}%
+                                  </span>
+                                  <div className="w-16 h-1.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                                     <div className={cn("h-full rounded-full transition-all duration-1000", student.attendance_percentage >= 75 ? "bg-emerald-500" : "bg-red-500")} style={{ width: `${student.attendance_percentage}%` }} />
+                                  </div>
+                               </div>
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                               <div className="flex items-center justify-end gap-2">
+                                  {activeSession && !attendance.find(a => a.student_id === student.id) && (
+                                     <button 
+                                       onClick={() => manualMarkAttendance(student.id)}
+                                       className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200"
+                                     >
+                                        Mark Present
+                                     </button>
+                                  )}
+                                  <button onClick={() => setResettingUserId(student.id)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
+                                     <Key className="w-5 h-5" />
+                                  </button>
+                               </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Password Reset Modal (Redesigned) */}
+                <AnimatePresence>
+                  {resettingUserId && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setResettingUserId(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl" />
+                       <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm p-10">
+                          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-8 shadow-xl shadow-indigo-200">
+                             <Key className="w-8 h-8 text-white" />
+                          </div>
+                          <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Access Recovery</h3>
+                          <p className="text-slate-500 text-sm mb-8 leading-relaxed">Enter a new 6-digit security PIN for this student's account.</p>
+                          <div className="space-y-6">
+                             <input 
+                               type="password" 
+                               value={newPassword}
+                               onChange={e => setNewPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                               className="w-full text-center text-3xl font-black tracking-[0.5em] py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-2xl outline-none"
+                               placeholder="******"
+                               maxLength={6}
+                             />
+                             <div className="flex gap-4">
+                                <button onClick={() => setResettingUserId(null)} className="flex-1 py-4 text-xs font-black uppercase text-slate-400 hover:text-slate-600">Cancel</button>
+                                <button onClick={() => handleResetPassword(resettingUserId)} disabled={loading || !/^\d{6}$/.test(newPassword)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-200 disabled:opacity-50">Confirm</button>
+                             </div>
+                          </div>
+                       </motion.div>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
     </div>
   );
 }
