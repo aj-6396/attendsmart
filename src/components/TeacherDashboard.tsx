@@ -168,7 +168,7 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
         .from('class_enrollments')
         .select(`
           student_id,
-          users:users(
+          users:student_id(
             id,
             name,
             student_profiles(
@@ -294,7 +294,7 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
       .from('attendance_records')
       .select(`
         *, 
-        users:users(
+        users:student_id(
           id,
           name, 
           student_profiles(
@@ -344,7 +344,7 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
         .from('class_enrollments')
         .select(`
           student_id,
-          users:users(
+          users:student_id(
             id,
             name,
             student_profiles(
