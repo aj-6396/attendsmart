@@ -221,11 +221,21 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `Attendance_${activeClass.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      
+      // Sanitize filename for Windows
+      const safeClassName = activeClass.name.replace(/[^a-zA-Z0-9 -]/g, '').trim();
+      link.setAttribute('download', `Attendance_${safeClassName}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      
+      // Cleanup to prevent memory leaks and permission errors
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
       setSuccess('Register exported successfully!');
     } catch (err: any) {
       console.error('Export error:', err);
@@ -492,7 +502,12 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    
+    // Cleanup to prevent memory leaks and permission errors
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 100);
   };
 
   return (
