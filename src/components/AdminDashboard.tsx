@@ -5,7 +5,7 @@ import {
   UserPlus, Users, ShieldCheck, Loader2, AlertCircle, CheckCircle2, 
   Key, Search, X, BarChart3, TrendingUp, Calendar, 
   ArrowUpRight, ArrowDownRight, Folder, Trash2, 
-  RefreshCw, LayoutDashboard, UserCog, GraduationCap, Download, LogOut
+  RefreshCw, LayoutDashboard, UserCog, GraduationCap, Download, LogOut, Smartphone
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
@@ -181,6 +181,31 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
       setLoading(false);
     }
   };
+
+  const handleResetDevice = async (studentId: string) => {
+    if (!confirm('Are you sure you want to reset this student\'s device link? They will be able to register a new device on their next login.')) return;
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/reset-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminId: user.id,
+          targetUserId: studentId
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to reset device');
+      
+      setSuccess('Device link reset successfully. Student can now register a new device.');
+      fetchStudents();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const filteredItems = () => {
     const q = searchQuery.toLowerCase();
@@ -377,7 +402,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
                            <><td className="px-8 py-5"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">{item.name.charAt(0)}</div><div><div className="text-slate-900 font-bold">{item.name}</div><div className="text-xs text-slate-400">{item.email}</div></div></div></td><td className="px-8 py-5 text-center"><span className="text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 px-3 py-1 rounded-md">Faculty</span></td><td className="px-8 py-5 text-right"><button onClick={() => setResettingUserId(item.id)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><Key className="w-5 h-5" /></button></td></>
                          )}
                          {activeTab === 'students' && (
-                           <><td className="px-8 py-5"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">{item.name.charAt(0)}</div><div><div className="text-slate-900 font-bold">{item.name}</div><div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{item.student_profiles?.[0]?.course} • Sem {item.student_profiles?.[0]?.semester}</div></div></div></td><td className="px-8 py-5 font-mono text-xs text-slate-500">{item.student_profiles?.[0]?.enrollment_no}</td><td className="px-8 py-5 text-right"><button onClick={() => setResettingUserId(item.id)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><Key className="w-5 h-5" /></button></td></>
+                           <><td className="px-8 py-5"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">{item.name.charAt(0)}</div><div><div className="text-slate-900 font-bold">{item.name}</div><div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{item.student_profiles?.[0]?.course} • Sem {item.student_profiles?.[0]?.semester}</div></div></div></td><td className="px-8 py-5 font-mono text-xs text-slate-500">{item.student_profiles?.[0]?.enrollment_no}</td><td className="px-8 py-5 text-right flex items-center justify-end gap-2"><button onClick={() => handleResetDevice(item.id)} className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all" title="Reset Device Link"><Smartphone className="w-5 h-5" /></button><button onClick={() => setResettingUserId(item.id)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Access Recovery"><Key className="w-5 h-5" /></button></td></>
                          )}
                          {activeTab === 'classes' && (
                            <><td className="px-8 py-5"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><Folder className="w-5 h-5" /></div><div><div className="text-slate-900 font-bold">{item.name}</div><div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Owner: {item.users?.name || 'System'}</div></div></div></td><td className="px-8 py-5 text-center"><span className="font-mono text-xs font-black bg-slate-100 text-slate-600 px-3 py-1 rounded-lg border border-slate-200">{item.join_code}</span></td><td className="px-8 py-5 text-right"><button onClick={() => deleteClass(item.id)} className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button></td></>
