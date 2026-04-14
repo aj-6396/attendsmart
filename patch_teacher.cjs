@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-let teacherDashboard = fs.readFileSync('src/components/TeacherDashboard.tsx', 'utf-8');
+let teacherDashboard = fs.readFileSync('src/components/TeacherDashboard.tsx', 'utf-8').replace(/\r\n/g, '\n');
 
 // 1. Add Class icon imports
 teacherDashboard = teacherDashboard.replace(/import { Plus, Users, /, "import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, ");

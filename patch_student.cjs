@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-let studentDashboard = fs.readFileSync('src/components/StudentDashboard.tsx', 'utf-8');
+let studentDashboard = fs.readFileSync('src/components/StudentDashboard.tsx', 'utf-8').replace(/\r\n/g, '\n');
 
 studentDashboard = studentDashboard.replace(/import { MapPin, /, "import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, ");
 

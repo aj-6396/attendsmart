@@ -1,3 +1,10 @@
+-- 1. Add Security Column for Device Locking
+ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS device_id TEXT;
+
+-- 2. Clear old test data (ONLY Attendance, NOT Users)
+-- TRUNCATE TABLE attendance_records CASCADE;
+-- TRUNCATE TABLE attendance_sessions CASCADE;
+
 -- 1. Create Classes Table
 CREATE TABLE IF NOT EXISTS classes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

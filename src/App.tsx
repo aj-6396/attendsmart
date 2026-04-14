@@ -397,7 +397,7 @@ export default function App() {
                     transition={{ delay: 0.2 }}
                     className="field-group"
                   >
-                    <label className="field-label">Exam Roll No (10 Characters)</label>
+                    <label className="field-label">Exam Roll No (11 Characters)</label>
                     <input
                       type="text"
                       value={examRollNo}
