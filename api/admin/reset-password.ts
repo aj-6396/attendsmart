@@ -13,9 +13,9 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // 1. Verify requester is admin
-    const { data: adminProfile, error: adminError } = await supabase.from("users").select("role").eq("id", requesterId).single();
-    if (adminError || adminProfile?.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
+    // 1. Verify requester is admin or teacher
+    const { data: profile, error: profileErr } = await supabase.from("users").select("role").eq("id", requesterId).single();
+    if (profileErr || !['admin', 'teacher'].includes(profile?.role)) return res.status(403).json({ error: "Unauthorized" });
 
     // 2. Update password via Auth Admin API
     const { error: authError } = await supabase.auth.admin.updateUserById(

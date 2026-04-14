@@ -12,15 +12,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { adminId, targetUserId } = req.body;
 
   try {
-    // 1. Verify requester is an admin
-    const { data: admin, error: adminErr } = await supabase
+    // 1. Verify requester is an admin or teacher
+    const { data: requester, error: requesterErr } = await supabase
       .from('users')
       .select('role')
       .eq('id', adminId)
       .single();
 
-    if (adminErr || admin?.role !== 'admin') {
-      return res.status(403).json({ error: 'Unauthorized. Admin access required.' });
+    if (requesterErr || !['admin', 'teacher'].includes(requester?.role)) {
+      return res.status(403).json({ error: 'Unauthorized. Proper access rights required.' });
     }
 
     // 2. Clear student device link
