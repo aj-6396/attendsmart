@@ -166,7 +166,17 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
       // 1. Fetch all students in the class
       const { data: enrollmentData } = await supabase
         .from('class_enrollments')
-        .select('student_id, users(name, student_profiles(enrollment_no, exam_roll_no))')
+        .select(`
+          student_id,
+          users:users(
+            id,
+            name,
+            student_profiles(
+              enrollment_no,
+              exam_roll_no
+            )
+          )
+        `)
         .eq('class_id', activeClass.id);
 
       // 2. Fetch all sessions for this class
@@ -282,7 +292,17 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
     if (!activeSession) return;
     const { data, error } = await supabase
       .from('attendance_records')
-      .select('*, users(name, student_profiles(enrollment_no, exam_roll_no))')
+      .select(`
+        *, 
+        users:users(
+          id,
+          name, 
+          student_profiles(
+            enrollment_no, 
+            exam_roll_no
+          )
+        )
+      `)
       .eq('session_id', activeSession.id);
 
     if (error) console.error('Error fetching attendance:', error);
