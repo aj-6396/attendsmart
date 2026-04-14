@@ -189,18 +189,21 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
       const headers = ['Student Name', 'Enrollment No', 'Exam Roll No', ...sessionDates, 'Total Present', '%'];
       
       const rows = enrollmentData.map((e: any) => {
-        const student = e.users;
-        const profile = student.student_profiles?.[0];
+        const student = Array.isArray(e.users) ? e.users[0] : e.users;
+        const profile = Array.isArray(student?.student_profiles) 
+          ? student?.student_profiles[0] 
+          : student?.student_profiles;
+
         const studentAttendance = sessions.map(s => {
           const isPresent = attendanceRecords?.some(r => r.student_id === e.student_id && r.session_id === s.id);
           return isPresent ? 'P' : 'A';
         });
         
         const attendedCount = studentAttendance.filter(v => v === 'P').length;
-        const percentage = Math.round((attendedCount / sessions.length) * 100);
+        const percentage = sessions.length > 0 ? Math.round((attendedCount / sessions.length) * 100) : 0;
         
         return [
-          student.name,
+          student?.name || 'Unknown',
           profile?.enrollment_no || 'N/A',
           profile?.exam_roll_no || 'N/A',
           ...studentAttendance,
@@ -470,9 +473,10 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
     const csvContent = [
       ['Student Name', 'Enrollment No', 'Exam Roll No', 'Timestamp'],
       ...attendance.map(a => {
-        const studentProfile = a.users.student_profiles?.[0];
+        const studentProfileData = a.users.student_profiles;
+        const studentProfile = Array.isArray(studentProfileData) ? studentProfileData[0] : studentProfileData;
         return [
-          a.users.name,
+          a.users.name || 'Unknown',
           studentProfile?.enrollment_no || 'N/A',
           studentProfile?.exam_roll_no || 'N/A',
           format(new Date(a.created_at), 'yyyy-MM-dd HH:mm:ss')
