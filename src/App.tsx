@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import { LogIn, LogOut, User as UserIcon, ShieldCheck, GraduationCap, Loader2, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
+import { getDeviceFingerprint } from './lib/device';
 import TeacherDashboard from './components/TeacherDashboard';
 import StudentDashboard from './components/StudentDashboard';
 import AdminDashboard from './components/AdminDashboard';
@@ -132,7 +133,7 @@ export default function App() {
       });
       if (error) throw error;
       
-      // Device ID Check for Students
+      // Device Fingerprint Check for Students
       if (loginType === 'student' && data?.user) {
          const { data: profileData } = await supabase
            .from('student_profiles')
@@ -141,10 +142,10 @@ export default function App() {
            .single();
            
          if (profileData && profileData.device_id) {
-           let localDeviceId = localStorage.getItem('device_id');
-           if (profileData.device_id !== localDeviceId) {
+           const fingerprint = await getDeviceFingerprint();
+           if (profileData.device_id !== fingerprint) {
              await supabase.auth.signOut();
-             throw new Error('Login denied: Your account is registered to another device.');
+             throw new Error('Login denied: Your account is registered to another device. Contact your teacher or admin to reset your device link.');
            }
          }
       }
@@ -197,14 +198,7 @@ export default function App() {
           batch: batch.trim(),
           section: section.trim(),
           password,
-          deviceId: (() => {
-            let id = localStorage.getItem('device_id');
-            if (!id) {
-               id = crypto.randomUUID();
-               localStorage.setItem('device_id', id);
-            }
-            return id;
-          })()
+          deviceId: await getDeviceFingerprint()
         })
       });
 

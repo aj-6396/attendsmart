@@ -15,11 +15,11 @@ export default defineConfig(({ mode }) => {
         injectRegister: 'auto',
         includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
-          name: 'Class Mark By AJ',
+          name: 'Class Mark',
           short_name: 'ClassMark',
           description: 'A smart attendance management system for educational institutions.',
           theme_color: '#1e2bdb',
-          background_color: '#ffffff',
+          background_color: '#000000ff',
           display: 'standalone',
           orientation: 'portrait',
           start_url: '/',

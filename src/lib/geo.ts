@@ -33,13 +33,18 @@ export function getCurrentPosition(options?: PositionOptions): Promise<Geolocati
 }
 
 /**
- * Captures multiple GPS readings and returns the averaged result.
- * This reduces noise on older devices.
+ * Captures multiple GPS readings and returns the averaged result
+ * along with raw samples for server-side spoof detection.
  */
 export async function getAveragedPosition(
   samples: number = 3,
   onProgress?: (current: number, total: number) => void
-): Promise<{ latitude: number; longitude: number; accuracy: number }> {
+): Promise<{
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  rawSamples: Array<{ lat: number; lng: number; accuracy: number; timestamp: number }>;
+}> {
   const readings: GeolocationPosition[] = [];
   
   for (let i = 0; i < samples; i++) {
@@ -59,9 +64,18 @@ export async function getAveragedPosition(
   const avgLng = readings.reduce((sum, r) => sum + r.coords.longitude, 0) / readings.length;
   const avgAcc = readings.reduce((sum, r) => sum + r.coords.accuracy, 0) / readings.length;
 
+  // Build raw samples array for server-side GPS spoof detection
+  const rawSamples = readings.map(r => ({
+    lat: r.coords.latitude,
+    lng: r.coords.longitude,
+    accuracy: r.coords.accuracy,
+    timestamp: r.timestamp
+  }));
+
   return {
     latitude: avgLat,
     longitude: avgLng,
-    accuracy: avgAcc
+    accuracy: avgAcc,
+    rawSamples
   };
 }

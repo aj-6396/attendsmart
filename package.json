@@ -1,7 +1,7 @@
 {
-  "name": "react-example",
+  "name": "developed by AJ",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@fingerprintjs/fingerprintjs": "^5.2.0",
     "@google/genai": "^1.29.0",
     "@supabase/supabase-js": "^2.102.1",
     "@tailwindcss/vite": "^4.1.14",

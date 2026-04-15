@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
+import { getDeviceFingerprint } from '../lib/device';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 
@@ -148,7 +149,8 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
       setLoading(true);
       setStatus({ type: null, message: '' });
 
-      const pos = await getAveragedPosition(3, (current, total) => {
+      // Collect 5 GPS samples for better spoof detection
+      const pos = await getAveragedPosition(5, (current, total) => {
         setSamplingProgress({ current, total });
       });
       setSamplingProgress(null);
@@ -164,6 +166,9 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
           return;
         }
       }
+
+      // Get hardware-based device fingerprint (survives cache clearing)
+      const deviceId = await getDeviceFingerprint();
       
       const response = await fetch('/api/attendance/mark', {
         method: 'POST',
@@ -174,7 +179,8 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
           lat: pos.latitude,
           lng: pos.longitude,
           accuracy: pos.accuracy,
-          deviceId: localStorage.getItem('device_id') // Simulated device ID
+          deviceId: deviceId,
+          gpsSamples: pos.rawSamples  // Send raw samples for server-side spoof detection
         })
       });
 
