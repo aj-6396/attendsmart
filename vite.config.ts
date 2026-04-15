@@ -10,26 +10,37 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
-      // <-- 2. Add the VitePWA configuration here
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: 'auto',
+        includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
-          name: 'Class Mark',      // Change this to your app's name
-          short_name: 'Class Mark', // Change this to your app's short name
-          description: 'A smart attendance management system for educational institutions.', // Change this to your app's description
-          theme_color: '#1e2bdb',     // Change to match your brand color
+          name: 'Class Mark By AJ',
+          short_name: 'ClassMark',
+          description: 'A smart attendance management system for educational institutions.',
+          theme_color: '#1e2bdb',
+          background_color: '#ffffff',
+          display: 'standalone',
+          orientation: 'portrait',
+          start_url: '/',
+          scope: '/',
           icons: [
             {
               src: 'pwa-192x192.png',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any'
             },
             {
               src: 'pwa-512x512.png',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any maskable'
             }
           ]
+        },
+        devOptions: {
+          enabled: true
         }
       })
     ],
