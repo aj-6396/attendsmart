@@ -38,6 +38,8 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
   const [samplingProgress, setSamplingProgress] = useState<{ current: number; total: number } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [locationPermission, setLocationPermission] = useState<string | null>(null);
+  const [showLowAttendanceToast, setShowLowAttendanceToast] = useState(false);
+  const [toastDismissed, setToastDismissed] = useState(false);
 
   useEffect(() => {
     // Check initial location permission status
@@ -128,6 +130,9 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
           total,
           percentage: total > 0 ? Math.round((attended / total) * 100) : 0
         });
+        if (total > 0 && Math.round((attended / total) * 100) < 75 && !toastDismissed) {
+          setShowLowAttendanceToast(true);
+        }
       } catch (err) {
         console.error('Error fetching student data:', err);
       }
@@ -285,7 +290,52 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <>
+      {/* Low Attendance Toast */}
+      <AnimatePresence>
+        {showLowAttendanceToast && stats.percentage < 75 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-6 left-4 right-4 z-[9999] md:left-auto md:right-6 md:w-96"
+          >
+            <div className="bg-gradient-to-r from-red-600 to-amber-600 p-[1px] rounded-2xl shadow-2xl">
+              <div className="bg-white rounded-[15px] p-4 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-black text-slate-900 leading-tight">Low Attendance Alert</h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Your attendance is currently <span className="text-red-600 font-bold">{stats.percentage}%</span>. 
+                    Please attend more classes to maintain the 75% requirement.
+                  </p>
+                  <div className="flex items-center gap-3 mt-3">
+                    <button 
+                      onClick={() => {
+                        setShowLowAttendanceToast(false);
+                        setToastDismissed(true);
+                      }}
+                      className="text-[10px] font-black uppercase tracking-widest text-white bg-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                    >
+                      Got it
+                    </button>
+                    <button 
+                       onClick={() => setShowLowAttendanceToast(false)}
+                       className="text-[10px] font-bold text-slate-400 hover:text-slate-600"
+                    >
+                      Remind later
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-3 mb-[-1rem]">
          <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100">
            <div className="flex items-center gap-4">
@@ -569,13 +619,21 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
           </div>
 
           {stats.percentage < 75 && (
-            <div className="alert alert--warning">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <div>
-                <h4 className="text-sm font-bold">Low Attendance Alert</h4>
-                <p className="text-xs mt-1">
-                  Your attendance is below the required 75% limit. Please attend classes regularly to avoid penalties.
-                </p>
+            <div className="relative group overflow-hidden bg-gradient-to-br from-amber-50 to-red-50 border border-amber-200 rounded-2xl p-5 mt-6">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform">
+                 <AlertCircle className="w-16 h-16 text-red-600" />
+              </div>
+              <div className="relative z-10 flex items-start gap-3">
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-amber-900 uppercase tracking-wide">Danger Zone: Low Attendance</h4>
+                  <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                    Your attendance is below the **75% institutional requirement**. 
+                    Falling below this limit may result in being barred from examinations.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -591,5 +649,6 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
         </div>
       </div>
     </div>
+    </>
   );
 }
