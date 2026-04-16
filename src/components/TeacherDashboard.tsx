@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2025 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * This code is proprietary and confidential. Unauthorized copying, 
+ * distribution, or use is strictly prohibited.
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';

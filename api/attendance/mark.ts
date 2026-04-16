@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2025 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * This code is proprietary and confidential. Unauthorized copying, 
+ * distribution, or use is strictly prohibited.
+ */
+
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";

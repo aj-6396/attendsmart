@@ -7,6 +7,12 @@
  * The fingerprint is derived from: canvas rendering, WebGL, audio context,
  * screen resolution, installed fonts, timezone, platform, etc.
  */
+/**
+ * Copyright © 2025 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * This code is proprietary and confidential. Unauthorized copying, 
+ * distribution, or use is strictly prohibited.
+ */
+
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
 let cachedFingerprint: string | null = null;
