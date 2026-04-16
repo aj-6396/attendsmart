@@ -189,17 +189,16 @@ function PrivacyContent() {
       <Section title="What We Collect">
         <ul className="list-disc pl-4 space-y-1">
           <li><strong>Account Data:</strong> Name, Enrollment No., Exam Roll No., Course, Semester, Section, Batch, and a 6-digit PIN (stored as a secure hash).</li>
-          <li><strong>GPS Location:</strong> Your real-time coordinates and accuracy value at the exact moment you mark attendance. Up to 5 consecutive readings are captured (~5 seconds) to verify you are physically present.</li>
-          <li><strong>Device Fingerprint:</strong> A hardware-derived identifier generated from your browser, screen, GPU, fonts, audio context, and timezone. This cannot be changed by clearing cache.</li>
-          <li><strong>Attendance Records:</strong> Which sessions you attended, with associated timestamps and GPS data.</li>
+          <li><strong>GPS Location:</strong> Your real-time coordinates at the moment you mark attendance to confirm physical presence.</li>
+          <li><strong>Device Identifier:</strong> A unique security identifier linked to your registered device.</li>
+          <li><strong>Attendance Records:</strong> Which sessions you attended, with associated timestamps and location data.</li>
         </ul>
       </Section>
 
       <Section title="Why We Collect It">
         <ul className="list-disc pl-4 space-y-1">
-          <li>GPS location verifies you are physically inside the classroom radius before marking attendance.</li>
-          <li>GPS samples detect mock/fake GPS apps used to spoof location.</li>
-          <li>Device fingerprint binds your account to one device to prevent proxy attendance.</li>
+          <li>GPS location verifies you are physically present at the institution premises before marking attendance.</li>
+          <li>Device identifier ensures your account is accessed only from your registered device for your security.</li>
         </ul>
       </Section>
 
@@ -244,11 +243,9 @@ function TermsContent() {
         <p className="mb-1 font-medium text-slate-800">The following are strictly prohibited and may result in account suspension:</p>
         <ul className="list-disc pl-4 space-y-1">
           <li><strong>Proxy Attendance:</strong> Marking attendance for another student, or allowing another person to mark yours.</li>
-          <li><strong>GPS Spoofing:</strong> Using mock location apps, VPNs, or any tool to falsify GPS coordinates.</li>
           <li><strong>Account Sharing:</strong> Sharing login credentials with any other person.</li>
-          <li><strong>Device Manipulation:</strong> Modifying device fingerprint or localStorage to bypass device binding.</li>
-          <li><strong>API Abuse:</strong> Calling backend APIs directly to bypass client-side checks.</li>
-          <li><strong>OTP Sharing:</strong> Sharing the attendance OTP with absent students.</li>
+          <li><strong>OTP Sharing:</strong> Sharing the session attendance code with students who are not physically present.</li>
+          <li><strong>Attendance Fraud:</strong> Any attempt to falsify your attendance record by any means.</li>
         </ul>
       </Section>
 
