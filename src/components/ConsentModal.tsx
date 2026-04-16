@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldCheck, FileText, AlertCircle, CheckCircle2, ChevronDown, ExternalLink } from 'lucide-react';
+import { ShieldCheck, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface ConsentModalProps {
   onAccept: () => void;
@@ -8,21 +8,12 @@ interface ConsentModalProps {
 
 export default function ConsentModal({ onAccept }: ConsentModalProps) {
   const [tab, setTab] = useState<'privacy' | 'terms'>('privacy');
-  const [ppRead, setPpRead] = useState(false);
-  const [tosRead, setTosRead] = useState(false);
   const [checked, setChecked] = useState(false);
   const [declined, setDeclined] = useState(false);
 
-  const canAccept = ppRead && tosRead && checked;
+  const canAccept = checked;
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>, type: 'privacy' | 'terms') => {
-    const el = e.currentTarget;
-    const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    if (isBottom) {
-      if (type === 'privacy') setPpRead(true);
-      if (type === 'terms') setTosRead(true);
-    }
-  };
+
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -66,7 +57,6 @@ export default function ConsentModal({ onAccept }: ConsentModalProps) {
           >
             <ShieldCheck className="w-4 h-4" />
             Privacy Policy
-            {ppRead && <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />}
           </button>
           <button
             onClick={() => setTab('terms')}
@@ -78,7 +68,6 @@ export default function ConsentModal({ onAccept }: ConsentModalProps) {
           >
             <FileText className="w-4 h-4" />
             Terms of Use
-            {tosRead && <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />}
           </button>
         </div>
 
@@ -86,23 +75,8 @@ export default function ConsentModal({ onAccept }: ConsentModalProps) {
         <div
           className="flex-1 overflow-y-auto px-6 py-4 text-slate-700 text-xs leading-relaxed space-y-4"
           style={{ minHeight: 0 }}
-          onScroll={(e) => handleScroll(e, tab)}
         >
           {tab === 'privacy' ? <PrivacyContent /> : <TermsContent />}
-
-          {/* Scroll hint */}
-          {((tab === 'privacy' && !ppRead) || (tab === 'terms' && !tosRead)) && (
-            <div className="sticky bottom-0 flex justify-center pt-2 pb-1 pointer-events-none">
-              <motion.div
-                animate={{ y: [0, 5, 0] }}
-                transition={{ repeat: Infinity, duration: 1.2 }}
-                className="flex items-center gap-1 text-xs text-slate-400 bg-white/80 px-3 py-1 rounded-full"
-              >
-                <ChevronDown className="w-3 h-3" />
-                Scroll to read
-              </motion.div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
@@ -124,12 +98,7 @@ export default function ConsentModal({ onAccept }: ConsentModalProps) {
             </span>
           </label>
 
-          {/* Read both hint */}
-          {(!ppRead || !tosRead) && (
-            <p className="text-xs text-amber-600 text-center">
-              Please scroll through both tabs to read them fully.
-            </p>
-          )}
+
 
           {/* Declined warning */}
           <AnimatePresence>
