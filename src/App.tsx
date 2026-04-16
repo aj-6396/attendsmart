@@ -10,6 +10,7 @@ import AdminDashboard from './components/AdminDashboard';
 import RoleSelection from './components/RoleSelection';
 import StudentLogin from './components/StudentLogin';
 import TeacherLogin from './components/TeacherLogin';
+import ConsentModal from './components/ConsentModal';
 import { Analytics } from "@vercel/analytics/next"
 
 export type UserRole = 'teacher' | 'student' | 'admin';
@@ -43,6 +44,16 @@ export default function App() {
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | null>(null);
   const [loginType, setLoginType] = useState<UserRole>('student');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Consent gate — checks localStorage so modal only appears once per device
+  const [consentAccepted, setConsentAccepted] = useState<boolean>(
+    () => localStorage.getItem('classmark_consent_v1') === 'accepted'
+  );
+
+  const handleAcceptConsent = () => {
+    localStorage.setItem('classmark_consent_v1', 'accepted');
+    setConsentAccepted(true);
+  };
 
   // Form states
   const [enrollmentNo, setEnrollmentNo] = useState('');
@@ -247,6 +258,11 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  // Consent gate — shown before ANYTHING else on first visit
+  if (!consentAccepted) {
+    return <ConsentModal onAccept={handleAcceptConsent} />;
   }
 
   if (!session || !profile) {
