@@ -153,7 +153,7 @@ function PrivacyContent() {
   return (
     <>
       <h3 className="text-sm font-bold text-slate-900">Privacy Policy</h3>
-      <p className="text-[11px] text-slate-400">Effective: April 16, 2025 · Developers: Ambuj Singh & Aniket Verma</p>
+      <p className="text-[11px] text-slate-400">Effective: April 16, 2026 · Developers: Ambuj Singh & Aniket Verma</p>
 
       <Section title="What We Collect">
         <ul className="list-disc pl-4 space-y-1">
@@ -202,7 +202,7 @@ function TermsContent() {
   return (
     <>
       <h3 className="text-sm font-bold text-slate-900">Terms of Use</h3>
-      <p className="text-[11px] text-slate-400">Effective: April 16, 2025 · Governed by the laws of India</p>
+      <p className="text-[11px] text-slate-400">Effective: April 16, 2026 · Governed by the laws of India</p>
 
       <Section title="Acceptance">
         <p>By using ClassMark, you agree to these Terms. If you do not agree, you may not use this application.</p>

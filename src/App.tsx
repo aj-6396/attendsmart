@@ -1,5 +1,5 @@
 /**
- * Copyright © 2025 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * Copyright © 2026 Ambuj Singh & Aniket Verma. All Rights Reserved.
  * This code is proprietary and confidential. Unauthorized copying, 
  * distribution, or use is strictly prohibited.
  */
@@ -162,7 +162,7 @@ export default function App() {
            const fingerprint = await getDeviceFingerprint();
            if (profileData.device_id !== fingerprint) {
              await supabase.auth.signOut();
-             throw new Error('Login denied: Your account is registered to another device. Contact your teacher or admin to reset your device link.');
+             throw new Error('Device Mismatch: Your account is locked to another device (likely the smartphone you used during registration). If you changed your phone, please ask your teacher to \"Reset Your Device Link\" during class.');
            }
          }
       }
@@ -651,3 +651,4 @@ export default function App() {
     </div>
   );
 }
+

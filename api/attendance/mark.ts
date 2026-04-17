@@ -1,5 +1,5 @@
 /**
- * Copyright © 2025 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * Copyright © 2026 Ambuj Singh & Aniket Verma. All Rights Reserved.
  * This code is proprietary and confidential. Unauthorized copying, 
  * distribution, or use is strictly prohibited.
  */
@@ -74,10 +74,10 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const { studentId, otp, lat, lng, accuracy, deviceId, gpsSamples } = req.body;
+    const { studentId, otp, lat, lng, accuracy, deviceId, gpsSamples, classId } = req.body;
 
-    if (!studentId || !otp || lat === undefined || lng === undefined) {
-      return res.status(400).json({ error: "Missing required fields" });
+    if (!studentId || !otp || lat === undefined || lng === undefined || !classId) {
+      return res.status(400).json({ error: "Missing required fields, including class selection." });
     }
 
     // ============================
@@ -91,11 +91,12 @@ export default async function handler(req: any, res: any) {
       .from("attendance_sessions")
       .select("id, lat, lng, class_id")
       .eq("otp", otp)
+      .eq("class_id", classId) // Force filter by class
       .eq("active", true)
       .gt("expires_at", new Date().toISOString())
       .single();
 
-    if (sessionError || !session) return res.status(404).json({ error: "Invalid or expired OTP" });
+    if (sessionError || !session) return res.status(404).json({ error: "Invalid or expired OTP for this class." });
 
     // Ensure student is enrolled in the class!
     if (session.class_id) {
@@ -153,8 +154,25 @@ export default async function handler(req: any, res: any) {
     }
 
     // ============================================
-    // FIX #2: Mandatory Device Binding (enforced)
+    // FIX #2: Mandatory Device Binding & Proxy Prevention
     // ============================================
+    
+    // Check if this device has already been used by someone ELSE for this specific session (Anti-Proxy)
+    const { data: proxyAttempt } = await supabase
+      .from("attendance_records")
+      .select("student_id")
+      .eq("session_id", session.id)
+      .eq("device_id", deviceId) // We will start storing device_id in attendance_records for auditing
+      .neq("student_id", studentId)
+      .limit(1)
+      .maybeSingle();
+
+    if (proxyAttempt) {
+      return res.status(403).json({ 
+        error: "Proxy Detected: This device has already been used to mark attendance for another student in this session. One device per student only." 
+      });
+    }
+
     const { data: profile } = await supabase
       .from("student_profiles")
       .select("device_id")
@@ -167,7 +185,9 @@ export default async function handler(req: any, res: any) {
 
     if (profile.device_id && profile.device_id !== deviceId) {
       // Device mismatch — someone is using a different device
-      return res.status(403).json({ error: "Device mismatch: Your account is registered to another device. Contact your teacher or admin to reset your device link." });
+      return res.status(403).json({ 
+        error: "Device Mismatch: Your account is registered to another device. If you have a new phone, please ask your teacher to 'Reset Your Device Link' during class." 
+      });
     }
 
     if (!profile.device_id) {
@@ -180,7 +200,7 @@ export default async function handler(req: any, res: any) {
 
     const { error: insertError } = await supabase
       .from("attendance_records")
-      .insert({ session_id: session.id, student_id: studentId, lat, lng });
+      .insert({ session_id: session.id, student_id: studentId, lat, lng, device_id: deviceId });
 
     if (insertError) return res.status(500).json({ error: insertError.message });
     return res.status(200).json({ success: true });

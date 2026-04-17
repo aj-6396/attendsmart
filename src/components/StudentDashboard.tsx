@@ -1,5 +1,5 @@
 /**
- * Copyright © 2025 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * Copyright © 2026 Ambuj Singh & Aniket Verma. All Rights Reserved.
  * This code is proprietary and confidential. Unauthorized copying, 
  * distribution, or use is strictly prohibited.
  */
@@ -186,6 +186,7 @@ export default function StudentDashboard({ user, profile }: { user: any; profile
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentId: user.id,
+          classId: activeClass?.id, // Added classId for strict isolation
           otp,
           lat: pos.latitude,
           lng: pos.longitude,

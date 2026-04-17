@@ -1,5 +1,5 @@
 /**
- * Copyright © 2025 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * Copyright © 2026 Ambuj Singh & Aniket Verma. All Rights Reserved.
  * This code is proprietary and confidential. Unauthorized copying, 
  * distribution, or use is strictly prohibited.
  */
@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X } from 'lucide-react';
+import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -115,6 +115,35 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
     } catch (err: any) {
       console.error('Error resetting password:', err);
       setError(err.message || 'Failed to reset password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetDevice = async (userId: string) => {
+    if (!confirm('Are you sure you want to reset this student\'s device link? They will be able to mark attendance from a new device.')) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      const response = await fetch('/api/admin/reset-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminId: user.id,
+          targetUserId: userId
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to reset device');
+
+      setSuccess('Student device link reset successfully!');
+    } catch (err: any) {
+      console.error('Error resetting device:', err);
+      setError(err.message || 'Failed to reset device.');
     } finally {
       setLoading(false);
     }
@@ -450,7 +479,12 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
     if (activeTab === 'records') {
       fetchAllStudentStats();
     }
-  }, [activeTab]);
+  }, [activeTab, activeClass?.id]);
+
+  useEffect(() => {
+    // Clear student stats when switching classes to prevent ghost data
+    setAllStudents([]);
+  }, [activeClass?.id]);
 
 
   const fetchAllStudentStats = async () => {
@@ -1127,3 +1161,4 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
     </div>
   );
 }
+
