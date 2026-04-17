@@ -1,45 +1,101 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
+import { VercelRequest, VercelResponse } from '@vercel/node';
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-export default async function handler(req: any, res: any) {
-  // Allow GET requests for fetching stats
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { adminId } = req.query;
+
+  if (!adminId) return res.status(400).json({ error: 'Admin ID required' });
 
   try {
-    const { count: studentCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student');
-    const { count: teacherCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'teacher');
-    const { count: sessionCount } = await supabase.from('attendance_sessions').select('*', { count: 'exact', head: true });
-    const { count: attendanceCount } = await supabase.from('attendance').select('*', { count: 'exact', head: true });
+    // 1. Authorization Check
+    const { data: requester, error: requesterErr } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', adminId)
+      .single();
 
-    const overallAttendance = sessionCount && studentCount ? (attendanceCount || 0) / (sessionCount * studentCount) * 100 : 0;
+    if (requesterErr || requester?.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized. Admin access required.' });
+    }
 
+    // 2. Parallel Counts
+    const [
+      { count: studentCount },
+      { count: teacherCount },
+      { count: classCount },
+      { count: sessionCount }
+    ] = await Promise.all([
+      supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student'),
+      supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
+      supabase.from('classes').select('*', { count: 'exact', head: true }),
+      supabase.from('attendance_sessions').select('*', { count: 'exact', head: true })
+    ]);
+
+    // 3. Attendance Trends (Last 7 days vs Previous 7 days)
     const sevenDaysAgo = new Date();
+    sevenDaysAgo.setHours(0,0,0,0);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const { data: trendsData } = await supabase
-      .from('attendance')
-      .select('created_at')
-      .gte('created_at', sevenDaysAgo.toISOString());
 
-    const trends = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      const count = trendsData?.filter(a => a.created_at.startsWith(dateStr)).length || 0;
-      return { date: dateStr, count };
-    }).reverse();
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setHours(0,0,0,0);
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    
+    const { data: records, error: recordsErr } = await supabase
+      .from('attendance_records')
+      .select('created_at')
+      .gte('created_at', fourteenDaysAgo.toISOString());
+
+    if (recordsErr) throw recordsErr;
+
+    // Process current week and previous week for growth calculation
+    const currentWeekCount = records.filter(r => new Date(r.created_at) >= sevenDaysAgo).length;
+    const previousWeekCount = records.filter(r => new Date(r.created_at) < sevenDaysAgo && new Date(r.created_at) >= fourteenDaysAgo).length;
+    
+    let growth = 0;
+    if (previousWeekCount > 0) {
+        growth = Math.round(((currentWeekCount - previousWeekCount) / previousWeekCount) * 100);
+    } else if (currentWeekCount > 0) {
+        growth = 100; // First week of activity
+    }
+
+    // Process trends for last 7 days only
+    const trendMap = new Map();
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        trendMap.set(d.toISOString().split('T')[0], 0);
+    }
+
+    records.filter(r => new Date(r.created_at) >= sevenDaysAgo).forEach(r => {
+        const date = r.created_at.split('T')[0];
+        if (trendMap.has(date)) {
+            trendMap.set(date, trendMap.get(date) + 1);
+        }
+    });
+
+    const trends = Array.from(trendMap.entries())
+        .map(([date, count]) => ({ date, count }));
 
     return res.status(200).json({
-      students: studentCount || 0,
-      teachers: teacherCount || 0,
-      sessions: sessionCount || 0,
-      overallAttendance: Math.round(overallAttendance),
-      trends
+      counts: {
+        students: studentCount || 0,
+        teachers: teacherCount || 0,
+        classes: classCount || 0,
+        sessions: sessionCount || 0
+      },
+      trends,
+      growth,
+      totalWeeklyAttendance: currentWeekCount
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: "Failed to fetch stats" });
+  } catch (error: any) {
+    console.error('Stats API error:', error);
+    return res.status(500).json({ error: error.message });
   }
 }

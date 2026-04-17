@@ -57,25 +57,18 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
 
   const fetchStats = async () => {
     try {
-      const { count: studentCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student');
-      const { count: teacherCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'teacher');
-      const { count: classCount } = await supabase.from('classes').select('*', { count: 'exact', head: true });
-      const { count: sessionCount } = await supabase.from('attendance_sessions').select('*', { count: 'exact', head: true });
+      const response = await fetch(`/api/admin/stats?adminId=${user.id}`);
+      const data = await response.json();
+      
+      if (!response.ok) throw new Error(data.error);
 
       setStats({
-        students: studentCount || 0,
-        teachers: teacherCount || 0,
-        classes: classCount || 0,
-        sessions: sessionCount || 0,
-        trends: [
-           { date: '2024-04-01', count: 45 },
-           { date: '2024-04-02', count: 52 },
-           { date: '2024-04-03', count: 38 },
-           { date: '2024-04-04', count: 65 },
-           { date: '2024-04-05', count: 48 },
-           { date: '2024-04-06', count: 59 },
-           { date: '2024-04-07', count: 72 },
-        ]
+        students: data.counts.students,
+        teachers: data.counts.teachers,
+        classes: data.counts.classes,
+        sessions: data.counts.sessions,
+        trends: data.trends,
+        summary: data.summary
       });
     } catch (err) {
       console.error('Stats fetch error:', err);
@@ -326,8 +319,10 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
                         <p className="text-xs text-slate-500 italic">Attendance check-ins past 7 days</p>
                      </div>
                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-emerald-500" />
-                        <span className="text-xs font-black text-emerald-500">12% Growth</span>
+                        <TrendingUp className={cn("w-4 h-4", (stats?.growth || 0) >= 0 ? "text-emerald-500" : "text-rose-500")} />
+                        <span className={cn("text-xs font-black", (stats?.growth || 0) >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                           {stats?.growth > 0 ? '+' : ''}{stats?.growth || 0}% Growth
+                        </span>
                      </div>
                   </div>
                   <div className="h-[300px] w-full">

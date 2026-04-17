@@ -4,20 +4,22 @@
  * distribution, or use is strictly prohibited.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { supabase } from './supabase';
 import { LogIn, LogOut, User as UserIcon, ShieldCheck, GraduationCap, Loader2, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { getDeviceFingerprint } from './lib/device';
-import TeacherDashboard from './components/TeacherDashboard';
-import StudentDashboard from './components/StudentDashboard';
-import AdminDashboard from './components/AdminDashboard';
 import RoleSelection from './components/RoleSelection';
 import StudentLogin from './components/StudentLogin';
 import TeacherLogin from './components/TeacherLogin';
 import ConsentModal from './components/ConsentModal';
 import { Analytics } from "@vercel/analytics/next"
+
+// Lazy load heavy dashboard components for performance optimization
+const TeacherDashboard = lazy(() => import('./components/TeacherDashboard'));
+const StudentDashboard = lazy(() => import('./components/StudentDashboard'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 
 export type UserRole = 'teacher' | 'student' | 'admin';
 
@@ -640,13 +642,20 @@ export default function App() {
         "container-app max-w-7xl mx-auto relative py-8",
         (profile?.role === 'admin' || profile?.role === 'teacher') ? "px-4" : ""
       )}>
-        {profile?.role === 'admin' ? (
-          <AdminDashboard user={session.user} profile={profile} onLogout={handleLogout} />
-        ) : profile?.role === 'teacher' ? (
-          <TeacherDashboard user={session.user} profile={profile} onLogout={handleLogout} />
-        ) : (
-          <StudentDashboard user={session.user} profile={profile!} />
-        )}
+        <Suspense fallback={
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400">
+            <Loader2 className="w-10 h-10 animate-spin mb-4 text-indigo-600" />
+            <p className="text-sm font-black uppercase tracking-widest animate-pulse">Initializing Module...</p>
+          </div>
+        }>
+          {profile?.role === 'admin' ? (
+            <AdminDashboard user={session.user} profile={profile} onLogout={handleLogout} />
+          ) : profile?.role === 'teacher' ? (
+            <TeacherDashboard user={session.user} profile={profile} onLogout={handleLogout} />
+          ) : (
+            <StudentDashboard user={session.user} profile={profile!} />
+          )}
+        </Suspense>
       </main>
     </div>
   );
