@@ -29,25 +29,29 @@
   }
 
   :root.dark {
-    /* Dark Mode Colors - Deep Midnight */
-    --color-primary: #3b82f6; /* Lighter blue for dark mode visibility */
-    --color-secondary: #FBBF24; /* Brighter gold */
-    --color-accent: #ef4444; /* Brighter red */
-    --color-success: #22c55e;
-    --color-error: #f87171;
-    --color-warning: #fbbf24;
+    /* "Coder Neon" Aesthetic */
+    --color-primary: #39ff14; /* Neon Green */
+    --color-secondary: #00ff41; /* Matrix Green */
+    --color-accent: #ff003c; /* Cyberpunk Red */
+    --color-success: #39ff14;
+    --color-error: #ff3131;
+    --color-warning: #ccff00;
     
-    /* Dark Background */
-    --color-bg: #0f172a; /* Slate 900 */
-    --color-surface: rgba(30, 41, 59, 0.95);
+    /* Deep Terminal Background */
+    --color-bg: #050505; 
+    --color-surface: rgba(10, 10, 10, 0.95);
     
-    /* Light Text Colors for Dark Background */
-    --color-text-primary: #f8fafc;
-    --color-text-secondary: #cbd5e1;
-    --color-text-hint: #64748b;
+    /* High Contrast Text */
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #a0ff7a; /* Dimmed Neon Green */
+    --color-text-hint: #4a4a4a;
     
-    /* Glass & Borders for Dark Mode */
-    --color-glass-border: rgba(255, 255, 255, 0.1);
+    /* Neon Glass & Borders */
+    --color-glass-border: rgba(57, 255, 20, 0.15);
+    
+    /* Glow Utilities for internal use */
+    --glow-primary: 0 0 15px rgba(57, 255, 20, 0.3);
+    --glow-text: 0 0 8px rgba(57, 255, 20, 0.5);
   }
 
   * {
@@ -110,6 +114,11 @@
     @apply relative backdrop-blur-[20px] border border-[--color-glass-border] rounded-[20px] p-5 shadow-xl;
     background: var(--color-surface);
   }
+  
+  .dark .glass-card {
+    @apply shadow-[0_0_20px_rgba(57,255,20,0.05)];
+    border-color: rgba(57, 255, 20, 0.1);
+  }
 
   .glass-card-hover {
     @apply relative backdrop-blur-[20px] border border-[--color-glass-border] rounded-[20px] p-5 shadow-xl transition-all duration-300 hover:shadow-2xl;
@@ -146,11 +155,20 @@
     box-shadow: 0 4px 14px rgba(0, 33, 71, 0.15);
   }
 
+  .dark .btn-gradient {
+    @apply text-black font-black;
+    box-shadow: 0 0 15px rgba(57, 255, 20, 0.4);
+  }
+
   .btn-gradient:hover {
     @apply -translate-y-[1px];
     background: var(--color-primary);
     opacity: 0.9;
     box-shadow: 0 6px 20px rgba(0, 33, 71, 0.25);
+  }
+  
+  .dark .btn-gradient:hover {
+    box-shadow: 0 0 25px rgba(57, 255, 20, 0.6);
   }
 
   .btn-gradient:active {

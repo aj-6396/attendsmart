@@ -1,29 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { GraduationCap, BookOpen, ShieldCheck, Sun, Moon } from 'lucide-react';
+import { GraduationCap, BookOpen, ShieldCheck } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 interface RoleSelectionProps {
-  onSelectRole: (role: 'student' | 'teacher') => void;
+  onSelectRole: (role: 'student' | 'teacher' | 'admin') => void;
+  darkMode: boolean;
+  toggleDarkMode: () => void;
 }
 
-export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' ||
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
+export default function RoleSelection({ onSelectRole, darkMode, toggleDarkMode }: RoleSelectionProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6">
       <div className="w-full max-w-2xl mb-10 glass-card p-4 flex items-center justify-between border border-[--color-glass-border] bg-white/10 shadow-xl">
@@ -35,13 +19,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
             Class Mark
           </span>
         </div>
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className="icon-btn"
-          title="Toggle theme"
-        >
-          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </button>
+        <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       </div>
 
       {/* Title Section */}

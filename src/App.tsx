@@ -14,6 +14,7 @@ import RoleSelection from './components/RoleSelection';
 import StudentLogin from './components/StudentLogin';
 import TeacherLogin from './components/TeacherLogin';
 import ConsentModal from './components/ConsentModal';
+import ThemeToggle from './components/ThemeToggle';
 import { Analytics } from "@vercel/analytics/next"
 
 // Lazy load heavy dashboard components for performance optimization
@@ -52,6 +53,27 @@ export default function App() {
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | null>(null);
   const [loginType, setLoginType] = useState<UserRole>('student');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Global Theme State
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark' ||
+        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  const toggleDarkMode = () => setDarkMode(!darkMode);
 
   // Consent gate — checks localStorage so modal only appears once per device
   const [consentAccepted, setConsentAccepted] = useState<boolean>(
@@ -286,13 +308,17 @@ export default function App() {
         )}
 
         {/* Role Selection Screen */}
-        {!loading && !selectedRole && <RoleSelection onSelectRole={(role) => {
-          setSelectedRole(role);
-          setLoginType(role);
-          setAuthMode('login');
-          setError(null);
-          setMessage(null);
-        }} />}
+        {!loading && !selectedRole && <RoleSelection 
+          onSelectRole={(role) => {
+            setSelectedRole(role);
+            setLoginType(role);
+            setAuthMode('login');
+            setError(null);
+            setMessage(null);
+          }} 
+          darkMode={darkMode}
+          toggleDarkMode={toggleDarkMode}
+        />}
 
         {/* Login Screens */}
         {!loading && selectedRole && (
@@ -627,13 +653,16 @@ export default function App() {
               <span className="text-xl font-bold text-[--color-primary] dark:text-white tracking-tight">Class Mark</span>
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="icon-btn hover:text-[--color-error]"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <button
+                onClick={handleLogout}
+                className="icon-btn hover:text-[--color-error]"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </header>
       )}
@@ -649,11 +678,11 @@ export default function App() {
           </div>
         }>
           {profile?.role === 'admin' ? (
-            <AdminDashboard user={session.user} profile={profile} onLogout={handleLogout} />
+            <AdminDashboard user={session.user} profile={profile} onLogout={handleLogout} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
           ) : profile?.role === 'teacher' ? (
-            <TeacherDashboard user={session.user} profile={profile} onLogout={handleLogout} />
+            <TeacherDashboard user={session.user} profile={profile} onLogout={handleLogout} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
           ) : (
-            <StudentDashboard user={session.user} profile={profile!} />
+            <StudentDashboard user={session.user} profile={profile!} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
           )}
         </Suspense>
       </main>

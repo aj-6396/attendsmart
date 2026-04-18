@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ThemeToggle from './ThemeToggle';
 
 interface Session {
   id: string;
@@ -53,7 +54,7 @@ interface StudentStats {
   attendance_percentage: number;
 }
 
-export default function TeacherDashboard({ user, profile, onLogout }: { user: any; profile: any; onLogout: () => void }) {
+export default function TeacherDashboard({ user, profile, onLogout, darkMode, toggleDarkMode }: { user: any; profile: any; onLogout: () => void; darkMode: boolean; toggleDarkMode: () => void }) {
   const [classes, setClasses] = useState<any[]>([]);
   const [activeClass, setActiveClass] = useState<any | null>(null);
   const [showCreateClass, setShowCreateClass] = useState(false);
@@ -737,6 +738,7 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
                 <Plus className="w-5 h-5" />
                 Create Class
               </button>
+              <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
               <button 
                 onClick={onLogout}
                 className="p-2.5 bg-white border border-slate-200 rounded-xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm"
@@ -837,6 +839,7 @@ export default function TeacherDashboard({ user, profile, onLogout }: { user: an
                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Status</span>
                     <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded mt-1">Authorized</span>
                  </div>
+                 <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} className="ml-2" />
                  <button 
                    onClick={onLogout}
                    className="p-2.5 bg-white border border-slate-100 rounded-xl hover:bg-red-50 transition-all text-slate-400 hover:text-red-600 shadow-sm ml-2"

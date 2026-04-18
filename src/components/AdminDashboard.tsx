@@ -10,10 +10,11 @@ import {
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
+import ThemeToggle from './ThemeToggle';
 
 type ActiveTab = 'overview' | 'teachers' | 'students' | 'classes';
 
-export default function AdminDashboard({ user, onLogout }: { user: any; profile: any; onLogout: () => void }) {
+export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMode }: { user: any; profile: any; onLogout: () => void; darkMode: boolean; toggleDarkMode: () => void }) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -286,6 +287,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
           <p className="text-slate-500 font-medium mt-1">System-wide monitoring & resource management</p>
         </div>
         <div className="flex items-center gap-3">
+           <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
            <button onClick={fetchInitialData} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all text-slate-500 hover:text-indigo-600 shadow-sm">
               <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
            </button>
@@ -364,13 +366,19 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
                         <AreaChart data={stats?.trends || []}>
                            <defs>
                              <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                               <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
-                               <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                               <stop offset="5%" stopColor={darkMode ? "#39ff14" : "#6366f1"} stopOpacity={darkMode ? 0.3 : 0.1}/>
+                               <stop offset="95%" stopColor={darkMode ? "#39ff14" : "#6366f1"} stopOpacity={0}/>
                              </linearGradient>
                            </defs>
                            <XAxis dataKey="date" hide />
-                           <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }} labelStyle={{ fontWeight: 'bold' }} />
-                           <Area type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
+                           <Tooltip contentStyle={{ 
+                              borderRadius: '16px', 
+                              border: darkMode ? '1px solid rgba(57, 255, 20, 0.2)' : 'none', 
+                              boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+                              backgroundColor: darkMode ? '#121212' : '#ffffff',
+                              color: darkMode ? '#39ff14' : '#000000'
+                            }} labelStyle={{ fontWeight: 'bold' }} />
+                           <Area type="monotone" dataKey="count" stroke={darkMode ? "#39ff14" : "#6366f1"} strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
                         </AreaChart>
                      </ResponsiveContainer>
                   </div>

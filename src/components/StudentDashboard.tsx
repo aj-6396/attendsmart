@@ -24,7 +24,7 @@ interface AttendanceRecord {
   };
 }
 
-export default function StudentDashboard({ user, profile }: { user: any; profile: any }) {
+export default function StudentDashboard({ user, profile, darkMode, toggleDarkMode }: { user: any; profile: any; darkMode: boolean; toggleDarkMode: () => void }) {
   const [classes, setClasses] = useState<any[]>([]);
   const [activeClass, setActiveClass] = useState<any | null>(null);
   const [showJoinClass, setShowJoinClass] = useState(false);
