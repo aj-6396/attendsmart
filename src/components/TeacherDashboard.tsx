@@ -616,13 +616,22 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   };
 
   const endSession = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to terminate this live session? Students will no longer be able to mark attendance.')) return;
+    
     try {
-      await supabase
+      setLoading(true);
+      const { error } = await supabase
         .from('attendance_sessions')
         .update({ active: false })
         .eq('id', sessionId);
-    } catch (err) {
+      
+      if (error) throw error;
+      setSuccess('Session terminated successfully.');
+    } catch (err: any) {
       console.error('Error ending session:', err);
+      setError('Failed to terminate session: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -917,8 +926,8 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
 
                   {activeSession ? (
                     <div className="glass-card overflow-hidden">
-                      <div className="bg-slate-900 p-8 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <div className="bg-[#0f172a] dark:bg-black p-8 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-5">
                            <Clock className="w-32 h-32" />
                         </div>
                         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -947,9 +956,14 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                           </div>
                           <button
                             onClick={() => endSession(activeSession.id)}
-                            className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest"
+                            disabled={loading}
+                            className={cn(
+                              "px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest border-2",
+                              "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500 hover:text-white",
+                              "dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40 dark:hover:bg-red-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(255,49,49,0.4)]"
+                            )}
                           >
-                            Terminate
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Terminate'}
                           </button>
                         </div>
                       </div>

@@ -380,7 +380,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
 
         <section>
           <div className="glass-card overflow-hidden">
-            <div className="bg-gradient-to-r from-[--color-success] to-[--color-secondary] p-6 text-black">
+            <div className="bg-gradient-to-r from-[#002147] to-[#004080] dark:from-[#39ff14] dark:to-[#00ff41] p-6 text-white dark:text-black">
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <ShieldCheck className="w-6 h-6" />
                 Mark Attendance
@@ -433,7 +433,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
 
               <form onSubmit={markAttendance} className="max-w-sm mx-auto space-y-6">
                 <div className="field-group">
-                  <label className="field-label text-center uppercase tracking-wider block text-black">
+                  <label className="field-label text-center uppercase tracking-wider block text-[--color-text-secondary]">
                     Enter 4-Digit OTP
                   </label>
                   <div className="flex justify-center gap-4">
