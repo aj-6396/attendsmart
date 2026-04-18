@@ -403,24 +403,24 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   };
 
 
-  useEffect(() => {
+  const fetchSessions = useCallback(async () => {
     if (!activeClass) return;
-    const fetchSessions = async () => {
-      const { data, error } = await supabase
-        .from('attendance_sessions')
-        .select('*')
-        .eq('class_id', activeClass?.id || '00000000-0000-0000-0000-000000000000')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('attendance_sessions')
+      .select('*')
+      .eq('class_id', activeClass.id)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching sessions:', error);
-      } else {
-        setSessions(data || []);
-        const active = data?.find(s => s.active && new Date(s.expires_at) > new Date());
-        setActiveSession(active || null);
-      }
-    };
+    if (error) {
+      console.error('Error fetching sessions:', error);
+    } else {
+      setSessions(data || []);
+      const active = data?.find(s => s.active && new Date(s.expires_at) > new Date());
+      setActiveSession(active || null);
+    }
+  }, [activeClass?.id]);
 
+  useEffect(() => {
     fetchSessions();
 
     // Realtime subscription
@@ -618,17 +618,26 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   const endSession = async (sessionId: string) => {
     if (!confirm('Are you sure you want to terminate this live session? Students will no longer be able to mark attendance.')) return;
     
+    // Optimistic UI Update: Close the UI immediately
+    const previousActiveSession = activeSession;
+    setActiveSession(null);
+    
     try {
       setLoading(true);
+      // Deactivate ALL active sessions for this class to ensure a clean slate
       const { error } = await supabase
         .from('attendance_sessions')
         .update({ active: false })
-        .eq('id', sessionId);
+        .eq('class_id', activeClass.id)
+        .eq('active', true);
       
       if (error) throw error;
-      setSuccess('Session terminated successfully.');
+      setSuccess('All active sessions for this class have been terminated.');
+      await fetchSessions(); // Final sync with DB
     } catch (err: any) {
       console.error('Error ending session:', err);
+      // Rollback optimistic update on error
+      setActiveSession(previousActiveSession);
       setError('Failed to terminate session: ' + err.message);
     } finally {
       setLoading(false);
