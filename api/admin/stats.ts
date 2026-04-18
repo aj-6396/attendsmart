@@ -83,6 +83,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const trends = Array.from(trendMap.entries())
         .map(([date, count]) => ({ date, count }));
 
+    // 4. Critical Roster (Students < 75% attendance)
+    // We fetch sessions counts per class and records count per student
+    const [
+      { data: sessionsByClass },
+      { data: allEnrollments },
+      { data: allRecords }
+    ] = await Promise.all([
+      supabase.from('attendance_sessions').select('id, class_id'),
+      supabase.from('class_enrollments').select('student_id, class_id, users(name)'),
+      supabase.from('attendance_records').select('student_id, session_id')
+    ]);
+
+    const criticalRoster: any[] = [];
+    
+    if (allEnrollments && sessionsByClass) {
+      // Group sessions by class
+      const classSessionMap = new Map();
+      sessionsByClass.forEach(s => {
+        if (!classSessionMap.has(s.class_id)) classSessionMap.set(s.class_id, []);
+        classSessionMap.get(s.class_id).push(s.id);
+      });
+
+      // Group records by student
+      const studentRecordMap = new Map();
+      allRecords?.forEach(r => {
+        if (!studentRecordMap.has(r.student_id)) studentRecordMap.set(r.student_id, new Set());
+        studentRecordMap.get(r.student_id).add(r.session_id);
+      });
+
+      // Map enrollment to student name
+      const studentNameMap = new Map();
+
+      // Calculate per student
+      const studentStats = new Map(); // studentId -> { present: 0, total: 0 }
+      
+      allEnrollments.forEach((e: any) => {
+        const studentId = e.student_id;
+        const classId = e.class_id;
+        const userName = Array.isArray(e.users) ? e.users[0]?.name : e.users?.name;
+        if (userName) studentNameMap.set(studentId, userName);
+
+        const classSessions = classSessionMap.get(classId) || [];
+        const totalSessions = classSessions.length;
+        if (totalSessions === 0) return;
+
+        if (!studentStats.has(studentId)) studentStats.set(studentId, { present: 0, total: 0 });
+        const stats = studentStats.get(studentId);
+        
+        stats.total += totalSessions;
+        
+        const attendedSet = studentRecordMap.get(studentId);
+        classSessions.forEach((sid: string) => {
+          if (attendedSet?.has(sid)) stats.present++;
+        });
+      });
+
+      studentStats.forEach((stats, studentId) => {
+        const percentage = Math.round((stats.present / stats.total) * 100);
+        if (percentage < 75) {
+          criticalRoster.push({
+            id: studentId,
+            name: studentNameMap.get(studentId) || 'Unknown',
+            attendance_percentage: percentage
+          });
+        }
+      });
+    }
+
     return res.status(200).json({
       counts: {
         students: studentCount || 0,
@@ -92,7 +160,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       trends,
       growth,
-      totalWeeklyAttendance: currentWeekCount
+      totalWeeklyAttendance: currentWeekCount,
+      criticalRoster: criticalRoster.sort((a,b) => a.attendance_percentage - b.attendance_percentage).slice(0, 10) // Top 10 most critical
     });
   } catch (error: any) {
     console.error('Stats API error:', error);

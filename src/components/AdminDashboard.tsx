@@ -28,6 +28,9 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
   
   // Search/Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
   
   // Modals/Forms
   const [showCreateTeacher, setShowCreateTeacher] = useState(false);
@@ -47,10 +50,9 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
     setLoading(true);
     await Promise.all([
       fetchStats(),
-      fetchTeachers(),
-      fetchStudents(),
-      fetchClasses(),
-      fetchLowAttendance()
+      fetchTeachers(0, searchQuery),
+      fetchStudents(0, searchQuery),
+      fetchClasses()
     ]);
     setLoading(false);
   };
@@ -68,30 +70,48 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
         classes: data.counts.classes,
         sessions: data.counts.sessions,
         trends: data.trends,
-        summary: data.summary
+        growth: data.growth,
+        totalWeeklyAttendance: data.totalWeeklyAttendance
       });
+      setLowAttendanceStudents(data.criticalRoster || []);
     } catch (err) {
       console.error('Stats fetch error:', err);
     }
   };
 
-  const fetchTeachers = async () => {
-    const { data } = await supabase.from('users').select('*, teacher_profiles(*)').eq('role', 'teacher').order('name');
-    setTeachers(data || []);
+  const fetchTeachers = async (p = 0, q = '') => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/admin/user-list?adminId=${user.id}&role=teacher&page=${p}&pageSize=${pageSize}&searchQuery=${q}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setTeachers(data.users);
+      if (activeTab === 'teachers') setTotalCount(data.total);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const fetchStudents = async () => {
-    const { data } = await supabase.from('users').select('*, student_profiles(*)').eq('role', 'student').order('name');
-    setStudents(data || []);
+  const fetchStudents = async (p = 0, q = '') => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/admin/user-list?adminId=${user.id}&role=student&page=${p}&pageSize=${pageSize}&searchQuery=${q}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setStudents(data.users);
+      if (activeTab === 'students') setTotalCount(data.total);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchClasses = async () => {
     const { data } = await supabase.from('classes').select('*, users(name)').order('created_at', { ascending: false });
     setClasses(data || []);
-  };
-
-  const fetchLowAttendance = async () => {
-     setLowAttendanceStudents([]);
   };
 
   const handleCreateTeacher = async (e: React.FormEvent) => {
@@ -123,7 +143,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
       setSuccess(`Teacher ${teacherName} created successfully!`);
       setShowCreateTeacher(false);
       resetTeacherForm();
-      fetchTeachers();
+      fetchTeachers(page, searchQuery);
     } catch (err: any) {
       console.error("Admin Error:", err);
       setError(err.message || "A connection error occurred.");
@@ -191,7 +211,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
       if (!response.ok) throw new Error(data.error || 'Failed to reset device');
       
       setSuccess('Device link reset successfully. Student can now register a new device.');
-      fetchStudents();
+      if (activeTab === 'students') fetchStudents(page, searchQuery);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -199,13 +219,27 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
     }
   };
 
+  useEffect(() => {
+    if (activeTab === 'teachers') fetchTeachers(page, searchQuery);
+    if (activeTab === 'students') fetchStudents(page, searchQuery);
+    if (activeTab === 'classes') fetchClasses();
+  }, [activeTab, page]);
+
+  useEffect(() => {
+    setPage(0);
+    const timer = setTimeout(() => {
+      if (activeTab === 'teachers') fetchTeachers(0, searchQuery);
+      if (activeTab === 'students') fetchStudents(0, searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const filteredItems = () => {
-    const q = searchQuery.toLowerCase();
-    if (activeTab === 'teachers') return teachers.filter(t => t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q));
-    if (activeTab === 'students') return students.filter(s => s.name.toLowerCase().includes(q) || s.student_profiles?.[0]?.enrollment_no?.includes(q));
-    if (activeTab === 'classes') return classes.filter(c => c.name.toLowerCase().includes(q) || c.join_code.toLowerCase().includes(q));
-    return [];
+    if (activeTab === 'classes') {
+      const q = searchQuery.toLowerCase();
+      return classes.filter(c => c.name.toLowerCase().includes(q) || c.join_code.toLowerCase().includes(q));
+    }
+    return activeTab === 'teachers' ? teachers : students;
   };
 
   return (
@@ -274,7 +308,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => { setActiveTab(tab.id as any); setSearchQuery(''); }}
+            onClick={() => { setActiveTab(tab.id as any); setSearchQuery(''); setPage(0); }}
             className={cn(
               "px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2",
               activeTab === tab.id 
@@ -408,6 +442,47 @@ export default function AdminDashboard({ user, onLogout }: { user: any; profile:
                  </table>
                </div>
             </div>
+
+            {activeTab !== 'classes' && totalCount > pageSize && (
+               <div className="flex items-center justify-between px-8 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm mt-4">
+                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                   Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, totalCount)} of {totalCount}
+                 </p>
+                 <div className="flex gap-2">
+                   <button 
+                     type="button"
+                     disabled={page === 0 || loading}
+                     onClick={() => setPage(p => p - 1)}
+                     className="px-4 py-2 text-xs font-black uppercase text-slate-500 hover:text-indigo-600 disabled:opacity-50 transition-colors"
+                   >
+                     Previous
+                   </button>
+                   <div className="flex items-center gap-1">
+                     {Array.from({ length: Math.ceil(totalCount / pageSize) }).map((_, i) => (
+                       <button
+                         key={i}
+                         type="button"
+                         onClick={() => setPage(i)}
+                         className={cn(
+                           "w-8 h-8 rounded-lg text-[10px] font-black transition-all",
+                           page === i ? "bg-indigo-600 text-white shadow-lg" : "text-slate-400 hover:bg-slate-50"
+                         )}
+                       >
+                         {i + 1}
+                       </button>
+                     )).slice(Math.max(0, page - 2), Math.min(Math.ceil(totalCount / pageSize), page + 3))}
+                   </div>
+                   <button 
+                     type="button"
+                     disabled={(page + 1) * pageSize >= totalCount || loading}
+                     onClick={() => setPage(p => p + 1)}
+                     className="px-4 py-2 text-xs font-black uppercase text-slate-500 hover:text-indigo-600 disabled:opacity-50 transition-colors"
+                   >
+                     Next
+                   </button>
+                 </div>
+               </div>
+             )}
           </motion.div>
         )}
       </AnimatePresence>
