@@ -57,19 +57,27 @@ export default function App() {
   // Global Theme State
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' ||
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      try {
+        return localStorage.getItem('theme') === 'dark' ||
+          (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      } catch (e) {
+        return false;
+      }
     }
     return false;
   });
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+    try {
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+    } catch (e) {
+      // Ignore
     }
   }, [darkMode]);
 
@@ -77,11 +85,21 @@ export default function App() {
 
   // Consent gate — checks localStorage so modal only appears once per device
   const [consentAccepted, setConsentAccepted] = useState<boolean>(
-    () => localStorage.getItem('classmark_consent_v1') === 'accepted'
+    () => {
+      try {
+        return localStorage.getItem('classmark_consent_v1') === 'accepted';
+      } catch (e) {
+        return false;
+      }
+    }
   );
 
   const handleAcceptConsent = () => {
-    localStorage.setItem('classmark_consent_v1', 'accepted');
+    try {
+      localStorage.setItem('classmark_consent_v1', 'accepted');
+    } catch (e) {
+      // Ignore
+    }
     setConsentAccepted(true);
   };
 
