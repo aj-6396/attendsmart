@@ -1067,7 +1067,12 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                             <tbody>
                               {attendance.map((record) => (
                                 <tr key={record.id} className="border-b border-slate-50/50 hover:bg-slate-50/50 transition-colors">
-                                  <td className="py-4 font-bold text-slate-900">{record.users.name}</td>
+                                  <td className="py-4 font-bold text-slate-900 flex items-center gap-2">
+                                    {record.users.name}
+                                    {record.manual && (
+                                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-widest rounded-md">Manual</span>
+                                    )}
+                                  </td>
                                   <td className="py-4 text-slate-500 font-mono text-xs">{(record.users.student_profiles as any)?.[0]?.enrollment_no}</td>
                                   <td className="py-4 text-right text-slate-400 text-xs font-mono">{format(new Date(record.created_at), 'HH:mm:ss')}</td>
                                 </tr>
