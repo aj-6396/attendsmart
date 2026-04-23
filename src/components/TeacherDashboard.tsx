@@ -1229,7 +1229,10 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                         Mark Present
                                      </button>
                                   )}
-                                  <button onClick={() => setResettingUserId(student.id)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
+                                  <button onClick={() => handleResetDevice(student.id)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors" title="Reset Device Link">
+                                     <Smartphone className="w-5 h-5" />
+                                  </button>
+                                  <button onClick={() => setResettingUserId(student.id)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Access Recovery">
                                      <Key className="w-5 h-5" />
                                   </button>
                                </div>
