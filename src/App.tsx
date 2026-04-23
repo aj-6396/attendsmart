@@ -276,6 +276,9 @@ export default function App() {
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Logout error:', err);
+    } finally {
+      setSession(null);
+      setProfile(null);
     }
   };
 
