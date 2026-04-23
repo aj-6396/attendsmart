@@ -99,8 +99,14 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
       setLoading(true);
       const res = await authFetch(`/api/admin/user-list?role=teacher&page=${p}&pageSize=${pageSize}&searchQuery=${encodeURIComponent(q)}`);
       const text = await res.text();
-      const data = JSON.parse(text);
-      if (!res.ok) throw new Error(data.error);
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (_err) {
+        throw new Error('Invalid server response while loading teachers.');
+      }
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to load teachers');
       setTeachers(data.users);
       if (activeTab === 'teachers') setTotalCount(data.total);
     } catch (err: any) {
@@ -120,8 +126,14 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
       setLoading(true);
       const res = await authFetch(`/api/admin/user-list?role=student&page=${p}&pageSize=${pageSize}&searchQuery=${encodeURIComponent(q)}`);
       const text = await res.text();
-      const data = JSON.parse(text);
-      if (!res.ok) throw new Error(data.error);
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (_err) {
+        throw new Error('Invalid server response while loading students.');
+      }
+
+      if (!res.ok) throw new Error(data.error || 'Failed to load students');
       setStudents(data.users);
       if (activeTab === 'students') setTotalCount(data.total);
     } catch (err: any) {

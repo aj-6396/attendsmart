@@ -10,9 +10,9 @@ function getSupabase() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
-
   try {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
     const supabase = getSupabase();
     if (!supabase) return res.status(500).json({ error: "Database configuration missing" });
 
@@ -77,6 +77,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: any) {
     console.error("User List API Error:", err);
-    return res.status(500).json({ error: "An internal error occurred." });
+    return res.status(500).json({ 
+      error: "An internal error occurred.", 
+      details: err.message,
+      path: req.url
+    });
   }
 }
