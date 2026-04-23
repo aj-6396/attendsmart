@@ -26,7 +26,7 @@ export async function getAuthenticatedUser(req: any): Promise<{ id: string; emai
     if (error || !user) return null;
 
     return { id: user.id, email: user.email || '' };
-  } catch {
+  } catch (_err) {
     return null;
   }
 }

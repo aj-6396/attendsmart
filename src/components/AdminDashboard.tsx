@@ -62,9 +62,17 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   const fetchStats = async () => {
     try {
       const response = await authFetch(`/api/admin/stats`);
-      const data = await response.json();
+      const text = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (_parseErr) {
+        console.error('Stats API returned non-JSON:', text.substring(0, 200));
+        setError('Server returned an invalid response. Please try refreshing.');
+        return;
+      }
       
-      if (!response.ok) throw new Error(data.error);
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch stats');
 
       setStats({
         students: data.counts.students,
@@ -76,8 +84,9 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
         totalWeeklyAttendance: data.totalWeeklyAttendance
       });
       setLowAttendanceStudents(data.criticalRoster || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Stats fetch error:', err);
+      setError(err.message || 'Failed to load dashboard stats.');
     }
   };
 
@@ -85,12 +94,14 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
     try {
       setLoading(true);
       const res = await authFetch(`/api/admin/user-list?role=teacher&page=${p}&pageSize=${pageSize}&searchQuery=${encodeURIComponent(q)}`);
-      const data = await res.json();
+      const text = await res.text();
+      const data = JSON.parse(text);
       if (!res.ok) throw new Error(data.error);
       setTeachers(data.users);
       if (activeTab === 'teachers') setTotalCount(data.total);
     } catch (err: any) {
-      setError(err.message);
+      console.error('Fetch teachers error:', err);
+      setError(err.message || 'Failed to load teachers.');
     } finally {
       setLoading(false);
     }
@@ -100,12 +111,14 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
     try {
       setLoading(true);
       const res = await authFetch(`/api/admin/user-list?role=student&page=${p}&pageSize=${pageSize}&searchQuery=${encodeURIComponent(q)}`);
-      const data = await res.json();
+      const text = await res.text();
+      const data = JSON.parse(text);
       if (!res.ok) throw new Error(data.error);
       setStudents(data.users);
       if (activeTab === 'students') setTotalCount(data.total);
     } catch (err: any) {
-      setError(err.message);
+      console.error('Fetch students error:', err);
+      setError(err.message || 'Failed to load students.');
     } finally {
       setLoading(false);
     }
