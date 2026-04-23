@@ -678,7 +678,8 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   };
 
   const manualMarkAttendance = async (studentId: string) => {
-    if (!activeSession) return;
+    const sessionToMark = activeSession || selectedPastSession;
+    if (!sessionToMark) return;
     try {
       setLoading(true);
       const response = await fetch('/api/attendance/manual', {
@@ -687,7 +688,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
         body: JSON.stringify({
           teacherId: user.id,
           studentId,
-          sessionId: activeSession.id
+          sessionId: sessionToMark.id
         })
       });
       if (!response.ok) throw new Error('Failed to mark manually');
@@ -1226,7 +1227,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                             </td>
                             <td className="px-8 py-6 text-right">
                                <div className="flex items-center justify-end gap-2">
-                                  {activeSession && !attendance.find(a => a.student_id === student.id) && (
+                                  {(activeSession || selectedPastSession) && !attendance.find(a => a.student_id === student.id) && (
                                      <button 
                                        onClick={() => manualMarkAttendance(student.id)}
                                        className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200"
