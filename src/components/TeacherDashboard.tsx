@@ -1095,7 +1095,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                        <History className="w-4 h-4" /> Past Sessions
                    </h3>
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                     {sessions.filter(s => !s.active).map(s => (
+                     {sessions.filter(s => !s.active || new Date(s.expires_at) <= new Date()).map(s => (
                         <button 
                           key={s.id} 
                           onClick={() => setSelectedPastSession(s)}
