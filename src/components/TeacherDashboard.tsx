@@ -67,6 +67,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const [selectedPastSession, setSelectedPastSession] = useState<Session | null>(null);
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -437,7 +438,8 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   }, [user.id, activeClass?.id]);
 
   const fetchAttendance = useCallback(async () => {
-    if (!activeSession) return;
+    const sessionToFetch = selectedPastSession || activeSession;
+    if (!sessionToFetch) return;
     const { data, error } = await supabase
       .from('attendance_records')
       .select(`
@@ -451,14 +453,16 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
           )
         )
       `)
-      .eq('session_id', activeSession.id);
+      .eq('session_id', sessionToFetch.id);
 
     if (error) console.error('Error fetching attendance:', error);
     else setAttendance(data as any || []);
-  }, [activeSession]);
+  }, [activeSession, selectedPastSession]);
 
   useEffect(() => {
-    if (activeSession) {
+    if (selectedPastSession) {
+      fetchAttendance();
+    } else if (activeSession) {
       fetchAttendance();
 
       const channel = supabase
@@ -474,7 +478,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
     } else {
       setAttendance([]);
     }
-  }, [activeSession, fetchAttendance]);
+  }, [activeSession, selectedPastSession, fetchAttendance]);
 
   useEffect(() => {
     if (activeTab === 'records') {
@@ -933,47 +937,64 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                     )}
                   </div>
 
-                  {activeSession ? (
+                  {(activeSession || selectedPastSession) ? (
                     <div className="glass-card overflow-hidden">
                       <div className="bg-[#0f172a] dark:bg-black p-8 text-white relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-8 opacity-5">
                            <Clock className="w-32 h-32" />
                         </div>
                         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                          <div>
-                            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Entrance Code</p>
-                            <h3 className="text-7xl font-black tracking-tighter text-white font-mono">{activeSession.otp}</h3>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-                              <MapPin className="w-4 h-4 text-indigo-400 mb-2" />
-                              <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Precision</p>
-                              <p className="text-lg font-black">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : '--'}</p>
-                            </div>
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-                              <Clock className="w-4 h-4 text-amber-400 mb-2" />
-                              <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Ends In</p>
-                              <p className="text-lg font-black font-mono">{format(new Date(activeSession.expires_at), 'HH:mm')}</p>
-                            </div>
-                            <div className="bg-indigo-500 rounded-2xl p-4 shadow-xl shadow-indigo-900/20 col-span-2 sm:col-span-1">
-                              <Users className="w-4 h-4 text-white/80 mb-2" />
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-black">{attendance.length}</span>
-                                <span className="text-[10px] text-white/60 font-black uppercase">Present</span>
+                          {selectedPastSession ? (
+                            <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div>
+                                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Historical View</p>
+                                <h3 className="text-4xl sm:text-5xl font-black tracking-tighter text-white">Record for {format(new Date(selectedPastSession.created_at), 'MMM dd, yyyy')}</h3>
                               </div>
+                              <button 
+                                onClick={() => setSelectedPastSession(null)}
+                                className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-all text-sm uppercase tracking-widest whitespace-nowrap"
+                              >
+                                Close View
+                              </button>
                             </div>
-                          </div>
-                          <button
-                            onClick={() => endSession(activeSession.id)}
-                            disabled={loading}
-                            className={cn(
-                              "px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest border-2",
-                              "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500 hover:text-white",
-                              "dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40 dark:hover:bg-red-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(255,49,49,0.4)]"
-                            )}
-                          >
-                            {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Terminate'}
-                          </button>
+                          ) : (
+                            <>
+                              <div>
+                                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Entrance Code</p>
+                                <h3 className="text-7xl font-black tracking-tighter text-white font-mono">{activeSession?.otp}</h3>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
+                                  <MapPin className="w-4 h-4 text-emerald-400 mb-2" />
+                                  <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Precision</p>
+                                  <p className="text-lg font-black">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : '--'}</p>
+                                </div>
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
+                                  <Clock className="w-4 h-4 text-amber-400 mb-2" />
+                                  <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Ends In</p>
+                                  <p className="text-lg font-black font-mono">{activeSession ? format(new Date(activeSession.expires_at), 'HH:mm') : '--'}</p>
+                                </div>
+                                <div className="bg-indigo-500 rounded-2xl p-4 shadow-xl shadow-indigo-900/20 col-span-2 sm:col-span-1">
+                                  <Users className="w-4 h-4 text-white/80 mb-2" />
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="text-2xl font-black">{attendance.length}</span>
+                                    <span className="text-[10px] text-white/60 font-black uppercase">Present</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => endSession(activeSession!.id)}
+                                disabled={loading}
+                                className={cn(
+                                  "px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest border-2",
+                                  "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500 hover:text-white",
+                                  "dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40 dark:hover:bg-red-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(255,49,49,0.4)]"
+                                )}
+                              >
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Terminate'}
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -1028,15 +1049,35 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
                        <History className="w-4 h-4" /> Past Sessions
                    </h3>
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     {sessions.filter(s => !s.active).slice(0, 3).map(s => (
-                        <div key={s.id} className="glass-card p-4 border-slate-100">
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                     {sessions.filter(s => !s.active).map(s => (
+                        <button 
+                          key={s.id} 
+                          onClick={() => setSelectedPastSession(s)}
+                          className={cn(
+                            "glass-card p-4 border text-left transition-all group",
+                            selectedPastSession?.id === s.id ? "border-[--color-primary] shadow-lg shadow-[--color-primary]/20 ring-1 ring-[--color-primary]" : "border-slate-100 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700"
+                          )}
+                        >
                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-[10px] font-black text-slate-400">{format(new Date(s.created_at), 'MMM dd')}</span>
-                              <span className="text-xs font-black text-slate-900 font-mono">{s.otp}</span>
+                              <span className={cn(
+                                "text-[10px] font-black transition-colors",
+                                selectedPastSession?.id === s.id ? "text-[--color-primary]" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+                              )}>
+                                {format(new Date(s.created_at), 'MMM dd, yyyy')}
+                              </span>
+                              <span className="text-xs font-black text-slate-900 font-mono dark:text-white">{s.otp}</span>
                            </div>
-                           <p className="text-[10px] text-slate-500 uppercase tracking-widest">Legacy Record</p>
-                        </div>
+                           <p className="text-[10px] text-slate-500 uppercase tracking-widest flex justify-between items-center">
+                             <span>Legacy Record</span>
+                             <span className={cn(
+                               "opacity-0 text-[10px] font-bold group-hover:opacity-100 transition-opacity",
+                               selectedPastSession?.id === s.id ? "opacity-100 text-[--color-primary]" : "text-indigo-500"
+                             )}>
+                               View →
+                             </span>
+                           </p>
+                        </button>
                      ))}
                    </div>
                 </section>

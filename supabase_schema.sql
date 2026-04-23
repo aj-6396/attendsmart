@@ -88,12 +88,14 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   student_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   lat DOUBLE PRECISION NOT NULL,
   lng DOUBLE PRECISION NOT NULL,
+  device_id TEXT, -- Added for Anti-Proxy
   manual BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(session_id, student_id)
 );
 CREATE INDEX IF NOT EXISTS idx_attendance_records_student ON attendance_records(student_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_records_session ON attendance_records(session_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_records_device_id ON attendance_records(device_id);
 
 -- 6. Row Level Security (RLS) Configuration
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;

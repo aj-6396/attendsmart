@@ -21,6 +21,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 2. Add Security Column for Device Locking
 ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS device_id TEXT;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS device_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_attendance_records_device_id ON attendance_records(device_id);
 
 -- 3. Clear old test data (ONLY Attendance, NOT Users)
 -- TRUNCATE TABLE attendance_records CASCADE;
