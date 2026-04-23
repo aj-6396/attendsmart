@@ -653,12 +653,16 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
     
     try {
       setLoading(true);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('attendance_sessions')
         .delete()
-        .eq('id', sessionId);
+        .eq('id', sessionId)
+        .select();
         
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Unable to delete. You may not have permission (you must be the creator).");
+      }
       
       setSuccess('Session deleted successfully.');
       if (activeSession?.id === sessionId) setActiveSession(null);
