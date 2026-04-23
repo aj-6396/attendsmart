@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone } from 'lucide-react';
+import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone, Trash2 } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -648,6 +648,30 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
     }
   };
 
+  const deleteSession = async (sessionId: string) => {
+    if (!confirm('CRITICAL ACTION: Are you sure you want to permanently delete this session? All attendance records tied to it will also be deleted. This cannot be undone.')) return;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('attendance_sessions')
+        .delete()
+        .eq('id', sessionId);
+        
+      if (error) throw error;
+      
+      setSuccess('Session deleted successfully.');
+      if (activeSession?.id === sessionId) setActiveSession(null);
+      if (selectedPastSession?.id === sessionId) setSelectedPastSession(null);
+      await fetchSessions();
+    } catch (err: any) {
+      console.error('Error deleting session:', err);
+      setError('Failed to delete session: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const manualMarkAttendance = async (studentId: string) => {
     if (!activeSession) return;
     try {
@@ -950,12 +974,20 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                 <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Historical View</p>
                                 <h3 className="text-4xl sm:text-5xl font-black tracking-tighter text-white">Record for {format(new Date(selectedPastSession.created_at), 'MMM dd, yyyy')}</h3>
                               </div>
-                              <button 
-                                onClick={() => setSelectedPastSession(null)}
-                                className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-all text-sm uppercase tracking-widest whitespace-nowrap"
-                              >
-                                Close View
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => deleteSession(selectedPastSession.id)}
+                                  className="px-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-bold transition-all text-sm uppercase tracking-widest whitespace-nowrap"
+                                >
+                                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Delete Record'}
+                                </button>
+                                <button 
+                                  onClick={() => setSelectedPastSession(null)}
+                                  className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-all text-sm uppercase tracking-widest whitespace-nowrap"
+                                >
+                                  Close View
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <>
@@ -982,17 +1014,30 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                   </div>
                                 </div>
                               </div>
-                              <button
-                                onClick={() => endSession(activeSession!.id)}
-                                disabled={loading}
-                                className={cn(
-                                  "px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest border-2",
-                                  "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500 hover:text-white",
-                                  "dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40 dark:hover:bg-red-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(255,49,49,0.4)]"
-                                )}
-                              >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Terminate'}
-                              </button>
+                              <div className="flex gap-4">
+                                <button
+                                  onClick={() => endSession(activeSession!.id)}
+                                  disabled={loading}
+                                  className={cn(
+                                    "flex-1 px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest border-2",
+                                    "bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500 hover:text-white",
+                                    "dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+                                  )}
+                                >
+                                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Terminate'}
+                                </button>
+                                <button
+                                  onClick={() => deleteSession(activeSession!.id)}
+                                  disabled={loading}
+                                  className={cn(
+                                    "flex-1 px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest border-2",
+                                    "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500 hover:text-white",
+                                    "dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40 dark:hover:bg-red-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]"
+                                  )}
+                                >
+                                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Delete Error'}
+                                </button>
+                              </div>
                             </>
                           )}
                         </div>
