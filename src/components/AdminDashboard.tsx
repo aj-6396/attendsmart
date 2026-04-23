@@ -86,7 +86,11 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
       setLowAttendanceStudents(data.criticalRoster || []);
     } catch (err: any) {
       console.error('Stats fetch error:', err);
-      setError(err.message || 'Failed to load dashboard stats.');
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setError('Network timeout or connection error. Please check your internet or retry.');
+      } else {
+        setError(err.message || 'Failed to load dashboard stats.');
+      }
     }
   };
 
@@ -101,7 +105,11 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
       if (activeTab === 'teachers') setTotalCount(data.total);
     } catch (err: any) {
       console.error('Fetch teachers error:', err);
-      setError(err.message || 'Failed to load teachers.');
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setError('Connection timed out while loading teachers. Please retry.');
+      } else {
+        setError(err.message || 'Failed to load teachers.');
+      }
     } finally {
       setLoading(false);
     }
@@ -118,7 +126,11 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
       if (activeTab === 'students') setTotalCount(data.total);
     } catch (err: any) {
       console.error('Fetch students error:', err);
-      setError(err.message || 'Failed to load students.');
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setError('Connection timed out while loading students. Please retry.');
+      } else {
+        setError(err.message || 'Failed to load students.');
+      }
     } finally {
       setLoading(false);
     }
