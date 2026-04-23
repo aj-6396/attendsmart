@@ -149,8 +149,26 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   };
 
   const fetchClasses = async () => {
-    const { data } = await supabase.from('classes').select('*, users(name)').order('created_at', { ascending: false });
-    setClasses(data || []);
+    try {
+      const res = await authFetch(`/api/admin/class-list`);
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (_err) {
+        throw new Error('Invalid server response while loading classes.');
+      }
+
+      if (!res.ok) throw new Error(data.error || 'Failed to load classes');
+      setClasses(data.classes || []);
+    } catch (err: any) {
+      console.error('Fetch classes error:', err);
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setError('Connection timed out while loading classes. Please retry.');
+      } else {
+        setError(err.message || 'Failed to load classes.');
+      }
+    }
   };
 
   const handleCreateTeacher = async (e: React.FormEvent) => {
