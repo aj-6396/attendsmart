@@ -24,7 +24,7 @@ export function getCurrentPosition(options?: PositionOptions): Promise<Geolocati
     } else {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 6000,   // Reduced from 10s — fail fast on weak GPS
         maximumAge: 0,
         ...options
       });
@@ -35,6 +35,12 @@ export function getCurrentPosition(options?: PositionOptions): Promise<Geolocati
 /**
  * Captures multiple GPS readings and returns the averaged result
  * along with raw samples for server-side spoof detection.
+ * 
+ * Designed to be resilient:
+ * - Reduced timeout per sample (6s instead of 10s)
+ * - Proceeds with whatever samples it collected (min 1)
+ * - Total operation has a hard 20-second ceiling
+ * - Only throws if ZERO readings were captured
  */
 export async function getAveragedPosition(
   samples: number = 3,
@@ -46,18 +52,37 @@ export async function getAveragedPosition(
   rawSamples: Array<{ lat: number; lng: number; accuracy: number; timestamp: number }>;
 }> {
   const readings: GeolocationPosition[] = [];
-  
+  const startTime = Date.now();
+  const HARD_TIMEOUT_MS = 20000; // 20-second hard ceiling for the entire operation
+
   for (let i = 0; i < samples; i++) {
+    // Hard timeout check — don't start a new sample if we're past the ceiling
+    if (i > 0 && Date.now() - startTime > HARD_TIMEOUT_MS) {
+      console.warn(`GPS sampling hit ${HARD_TIMEOUT_MS / 1000}s ceiling after ${readings.length} samples. Proceeding.`);
+      break;
+    }
+
     if (onProgress) onProgress(i + 1, samples);
     try {
       const pos = await getCurrentPosition();
       readings.push(pos);
-      // Small delay between readings to allow GPS to settle
-      if (i < samples - 1) await new Promise(resolve => setTimeout(resolve, 1000));
+      // Small delay between readings to allow GPS to settle (only 500ms, not 1s)
+      if (i < samples - 1) await new Promise(resolve => setTimeout(resolve, 500));
     } catch (err) {
-      console.error(`Sample ${i + 1} failed:`, err);
-      if (readings.length === 0 && i === samples - 1) throw err;
+      console.error(`GPS sample ${i + 1}/${samples} failed:`, err);
+      // If we already have at least 1 reading, don't block — proceed with what we have
+      if (readings.length > 0) {
+        console.warn(`Proceeding with ${readings.length} successful sample(s) out of ${samples}.`);
+        break;
+      }
+      // If this is the last attempt and we still have nothing, throw
+      if (i === samples - 1) throw err;
     }
+  }
+
+  // Safety check — should never happen given the logic above, but just in case
+  if (readings.length === 0) {
+    throw new Error('Failed to obtain any GPS readings. Please check your location settings.');
   }
 
   const avgLat = readings.reduce((sum, r) => sum + r.coords.latitude, 0) / readings.length;

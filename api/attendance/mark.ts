@@ -5,6 +5,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { getAuthenticatedUser } from "../lib/auth";
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -74,10 +75,35 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const { studentId, otp, lat, lng, accuracy, deviceId, localFallback, gpsSamples, classId } = req.body;
+    // SECURITY: Authenticate from JWT, NOT from request body
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser) {
+      return res.status(401).json({ error: "Unauthorized. Please log in." });
+    }
 
-    if (!studentId || !otp || lat === undefined || lng === undefined || !classId) {
+    const { otp, lat, lng, accuracy, deviceId, localFallback, gpsSamples, classId } = req.body;
+
+    // Use authenticated user ID instead of client-supplied studentId
+    const studentId = authUser.id;
+
+    if (!otp || lat === undefined || lng === undefined || !classId) {
       return res.status(400).json({ error: "Missing required fields, including class selection." });
+    }
+
+    // Validate UUID format for classId
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(classId)) {
+      return res.status(400).json({ error: "Invalid class ID format." });
+    }
+
+    // Validate OTP format (4 digits)
+    if (!/^\d{4}$/.test(otp)) {
+      return res.status(400).json({ error: "Invalid OTP format." });
+    }
+
+    // Validate coordinates are numbers
+    if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ error: "Invalid coordinates." });
     }
 
     // ============================
@@ -205,6 +231,6 @@ export default async function handler(req: any, res: any) {
     if (insertError) return res.status(500).json({ error: insertError.message });
     return res.status(200).json({ success: true });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: "An internal error occurred." });
   }
 }

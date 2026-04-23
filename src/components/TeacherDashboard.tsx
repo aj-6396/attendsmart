@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
+import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone, Trash2 } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
@@ -98,11 +99,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       setError(null);
       setSuccess(null);
 
-      const response = await fetch('/api/admin/reset-password', {
+      const response = await authFetch('/api/admin/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requesterId: user.id,
           targetUserId: userId,
           newPassword
         })
@@ -130,11 +129,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       setError(null);
       setSuccess(null);
 
-      const response = await fetch('/api/admin/reset-device', {
+      const response = await authFetch('/api/admin/reset-device', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminId: user.id,
           targetUserId: userId
         })
       });
@@ -591,10 +588,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
         setError(`Your GPS accuracy is very poor (${Math.round(pos.accuracy)}m). Please try to move to a window or open area for better results.`);
       }
       
-      const response = await fetch('/api/sessions/create', {
+      const response = await authFetch('/api/sessions/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teacherId: user.id, classId: activeClass?.id, lat: pos.latitude, lng: pos.longitude, accuracy: pos.accuracy })
+        body: JSON.stringify({ classId: activeClass?.id, lat: pos.latitude, lng: pos.longitude, accuracy: pos.accuracy })
       });
 
       const data = await response.json();
@@ -682,11 +678,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
     if (!sessionToMark) return;
     try {
       setLoading(true);
-      const response = await fetch('/api/attendance/manual', {
+      const response = await authFetch('/api/attendance/manual', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          teacherId: user.id,
           studentId,
           sessionId: sessionToMark.id
         })

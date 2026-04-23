@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { getAuthenticatedUser } from '../lib/auth';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -9,16 +10,18 @@ const supabase = createClient(
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { adminId } = req.query;
-
-  if (!adminId) return res.status(400).json({ error: 'Admin ID required' });
-
   try {
-    // 1. Authorization Check
+    // SECURITY: Authenticate from JWT, NOT from query params
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser) {
+      return res.status(401).json({ error: "Unauthorized. Please log in." });
+    }
+
+    // 1. Authorization Check — verify the AUTHENTICATED user is admin
     const { data: requester, error: requesterErr } = await supabase
       .from('users')
       .select('role')
-      .eq('id', adminId)
+      .eq('id', authUser.id)
       .single();
 
     if (requesterErr || requester?.role !== 'admin') {
@@ -165,6 +168,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error('Stats API error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: "An internal error occurred." });
   }
 }

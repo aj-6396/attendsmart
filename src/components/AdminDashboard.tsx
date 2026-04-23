@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../lib/authFetch';
 import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -60,7 +61,7 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`/api/admin/stats?adminId=${user.id}`);
+      const response = await authFetch(`/api/admin/stats`);
       const data = await response.json();
       
       if (!response.ok) throw new Error(data.error);
@@ -83,7 +84,7 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   const fetchTeachers = async (p = 0, q = '') => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/admin/user-list?adminId=${user.id}&role=teacher&page=${p}&pageSize=${pageSize}&searchQuery=${q}`);
+      const res = await authFetch(`/api/admin/user-list?role=teacher&page=${p}&pageSize=${pageSize}&searchQuery=${encodeURIComponent(q)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setTeachers(data.users);
@@ -98,7 +99,7 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   const fetchStudents = async (p = 0, q = '') => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/admin/user-list?adminId=${user.id}&role=student&page=${p}&pageSize=${pageSize}&searchQuery=${q}`);
+      const res = await authFetch(`/api/admin/user-list?role=student&page=${p}&pageSize=${pageSize}&searchQuery=${encodeURIComponent(q)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setStudents(data.users);
@@ -122,11 +123,9 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
     setSuccess(null);
     
     try {
-      const response = await fetch('/api/admin/create-teacher', {
+      const response = await authFetch('/api/admin/create-teacher', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminId: user.id,
           teacherName,
           teacherEmail,
           teacherPassword,
@@ -174,11 +173,9 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
     if (!/^\d{6}$/.test(newPassword)) return setError('PIN must be 6 digits');
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/reset-password', {
+      const response = await authFetch('/api/admin/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requesterId: user.id,
           targetUserId: userId,
           newPassword
         })
@@ -200,11 +197,9 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
     if (!confirm('Are you sure you want to reset this student\'s device link? They will be able to register a new device on their next login.')) return;
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/reset-device', {
+      const response = await authFetch('/api/admin/reset-device', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminId: user.id,
           targetUserId: studentId
         })
       });

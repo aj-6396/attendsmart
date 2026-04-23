@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
@@ -156,58 +157,63 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
     e.preventDefault();
     if (otp.length !== 4) return;
 
+    // Hard 30-second timeout so the UI never gets permanently stuck
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('The operation took too long. Please check your GPS signal and try again.')), 30000)
+    );
+
     try {
       setLoading(true);
       setStatus({ type: null, message: '' });
 
-      // Collect 5 GPS samples for better spoof detection
-      const pos = await getAveragedPosition(5, (current, total) => {
-        setSamplingProgress({ current, total });
-      });
-      setSamplingProgress(null);
-      setLocationAccuracy(pos.accuracy);
-      
-      if (pos.accuracy > 60) {
-        if (retryCount < 2) {
-          setRetryCount(prev => prev + 1);
-          setStatus({ type: 'error', message: `Low GPS accuracy (${Math.round(pos.accuracy)}m). Please stay in an open area and try again. (Retry ${retryCount + 1}/3)` });
-          return;
-        } else {
-          setStatus({ type: 'error', message: `GPS accuracy is too low (${Math.round(pos.accuracy)}m) after multiple attempts. Please move closer to the classroom or ask the teacher for manual override.` });
-          return;
+      await Promise.race([timeoutPromise, (async () => {
+        // Collect 3 GPS samples for spoof detection (reduced from 5 for faster response)
+        const pos = await getAveragedPosition(3, (current, total) => {
+          setSamplingProgress({ current, total });
+        });
+        setSamplingProgress(null);
+        setLocationAccuracy(pos.accuracy);
+        
+        if (pos.accuracy > 60) {
+          if (retryCount < 2) {
+            setRetryCount(prev => prev + 1);
+            setStatus({ type: 'error', message: `Low GPS accuracy (${Math.round(pos.accuracy)}m). Please stay in an open area and try again. (Retry ${retryCount + 1}/3)` });
+            return;
+          } else {
+            setStatus({ type: 'error', message: `GPS accuracy is too low (${Math.round(pos.accuracy)}m) after multiple attempts. Please move closer to the classroom or ask the teacher for manual override.` });
+            return;
+          }
         }
-      }
 
-      // Get hardware-based device fingerprint (survives cache clearing)
-      const deviceId = await getDeviceFingerprint();
-      
-      const response = await fetch('/api/attendance/mark', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId: user.id,
-          classId: activeClass?.id, // Added classId for strict isolation
-          otp,
-          lat: pos.latitude,
-          lng: pos.longitude,
-          accuracy: pos.accuracy,
-          deviceId: deviceId,
-          localFallback: localStorage.getItem('device_id'),
-          gpsSamples: pos.rawSamples  // Send raw samples for server-side spoof detection
-        })
-      });
+        // Get hardware-based device fingerprint (survives cache clearing)
+        const deviceId = await getDeviceFingerprint();
+        
+        const response = await authFetch('/api/attendance/mark', {
+          method: 'POST',
+          body: JSON.stringify({
+            classId: activeClass?.id,
+            otp,
+            lat: pos.latitude,
+            lng: pos.longitude,
+            accuracy: pos.accuracy,
+            deviceId: deviceId,
+            localFallback: localStorage.getItem('device_id'),
+            gpsSamples: pos.rawSamples
+          })
+        });
 
-      const data = await response.json();
-      if (!response.ok) {
-        if (data.distance && data.allowedRadius) {
-          throw new Error(`You are too far (${data.distance}m). Please move slightly closer to the classroom.`);
+        const data = await response.json();
+        if (!response.ok) {
+          if (data.distance && data.allowedRadius) {
+            throw new Error(`You are too far (${data.distance}m). Please move slightly closer to the classroom.`);
+          }
+          throw new Error(data.error || 'Failed to mark attendance');
         }
-        throw new Error(data.error || 'Failed to mark attendance');
-      }
 
-      setStatus({ type: 'success', message: 'Attendance marked successfully!' });
-      setOtp('');
-      setRetryCount(0);
+        setStatus({ type: 'success', message: 'Attendance marked successfully!' });
+        setOtp('');
+        setRetryCount(0);
+      })()]);
 
     } catch (err: any) {
       console.error('Attendance error:', err);

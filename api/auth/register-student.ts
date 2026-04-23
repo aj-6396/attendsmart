@@ -19,6 +19,14 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Security: Reject excessively long inputs to prevent abuse
+    const MAX_LEN = 100;
+    if ([enrollmentNo, examRollNo, fullName, course, semester, majorSubject, batch, section, password].some(
+      (v: string) => typeof v !== 'string' || v.length > MAX_LEN
+    )) {
+      return res.status(400).json({ error: "Invalid input: one or more fields exceed maximum length" });
+    }
+
     const trimmedEnrollment = enrollmentNo.trim();
     const trimmedExamRoll = examRollNo?.trim().toUpperCase();
     const email = trimmedEnrollment.includes('@') ? trimmedEnrollment.toLowerCase() : `${trimmedEnrollment.toLowerCase()}@college.com`;
@@ -43,7 +51,7 @@ export default async function handler(req: any, res: any) {
     // Create User Record
     const { error: userError } = await supabase.from('users').insert({
       id: authData.user.id,
-      name: fullName.trim(),
+      name: fullName.trim().slice(0, 100),
       role: isOwner ? 'admin' : 'student',
     });
 
@@ -58,11 +66,11 @@ export default async function handler(req: any, res: any) {
         id: authData.user.id,
         enrollment_no: trimmedEnrollment,
         exam_roll_no: trimmedExamRoll,
-        course: course.trim(),
-        semester: semester.trim(),
-        major_subject: majorSubject.trim(),
-        batch: batch.trim(),
-        section: section.trim(),
+        course: course.trim().slice(0, 50),
+        semester: semester.trim().slice(0, 10),
+        major_subject: majorSubject.trim().slice(0, 50),
+        batch: batch.trim().slice(0, 20),
+        section: section.trim().slice(0, 10),
         device_id: deviceId || null,
       });
 
