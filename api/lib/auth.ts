@@ -5,9 +5,6 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
 /**
  * Verifies the JWT from the Authorization header and returns the authenticated user.
  * Returns null if the token is invalid or missing.
@@ -20,6 +17,16 @@ export async function getAuthenticatedUser(req: any): Promise<{ id: string; emai
     }
 
     const token = authHeader.replace('Bearer ', '');
+    
+    // Safely get env vars
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Supabase environment variables are missing in API.");
+      return null;
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { data: { user }, error } = await supabase.auth.getUser(token);
 

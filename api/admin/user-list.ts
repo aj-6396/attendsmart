@@ -2,14 +2,20 @@ import { createClient } from "@supabase/supabase-js";
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAuthenticatedUser } from "../lib/auth";
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+function getSupabase() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
+    const supabase = getSupabase();
+    if (!supabase) return res.status(500).json({ error: "Database configuration missing" });
+
     // SECURITY: Authenticate from JWT, NOT from query params
     const authUser = await getAuthenticatedUser(req);
     if (!authUser) {
