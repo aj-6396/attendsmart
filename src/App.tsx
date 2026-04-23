@@ -290,6 +290,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    if (!window.confirm('Do you really want to log out?')) return;
     try {
       await supabase.auth.signOut();
     } catch (err) {
