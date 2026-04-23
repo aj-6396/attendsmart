@@ -664,6 +664,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       if (activeSession?.id === sessionId) setActiveSession(null);
       if (selectedPastSession?.id === sessionId) setSelectedPastSession(null);
       await fetchSessions();
+      await fetchAllStudentStats();
     } catch (err: any) {
       console.error('Error deleting session:', err);
       setError('Failed to delete session: ' + err.message);
