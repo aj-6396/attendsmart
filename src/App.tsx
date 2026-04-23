@@ -15,7 +15,8 @@ import StudentLogin from './components/StudentLogin';
 import TeacherLogin from './components/TeacherLogin';
 import ConsentModal from './components/ConsentModal';
 import ThemeToggle from './components/ThemeToggle';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 // Lazy load heavy dashboard components for performance optimization
 const TeacherDashboard = lazy(() => import('./components/TeacherDashboard'));
@@ -661,10 +662,13 @@ export default function App() {
   }
 
   return (
-    <div className="page animated-bg">
-      <div className="dot-grid" />
-      {/* Only show global header for students or logged-out users */}
-      {(!profile || profile.role === 'student') && (
+    <>
+      <SpeedInsights />
+      <Analytics />
+      <div className="page animated-bg">
+        <div className="dot-grid" />
+        {/* Only show global header for students or logged-out users */}
+        {(!profile || profile.role === 'student') && (
         <header className="glass-card sticky top-4 z-50 mx-4 mt-4 rounded-[20px]">
           <div className="px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -710,7 +714,7 @@ export default function App() {
           )}
         </Suspense>
       </main>
-    </div>
+      </div>
+    </>
   );
 }
-
