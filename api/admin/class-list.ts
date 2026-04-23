@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 2. Fetch Classes with teacher names
     const { data, error } = await supabase
       .from('classes')
-      .select('*, users(name)')
+      .select('*, users:created_by(name)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
