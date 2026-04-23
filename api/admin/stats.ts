@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAuthenticatedUser } from '../lib/auth';
+import { getAuthenticatedUser } from '../lib/auth.js';
 
 function getSupabase() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
