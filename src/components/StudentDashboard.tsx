@@ -192,6 +192,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
           lng: pos.longitude,
           accuracy: pos.accuracy,
           deviceId: deviceId,
+          localFallback: localStorage.getItem('device_id'),
           gpsSamples: pos.rawSamples  // Send raw samples for server-side spoof detection
         })
       });

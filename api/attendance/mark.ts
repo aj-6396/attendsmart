@@ -74,7 +74,7 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const { studentId, otp, lat, lng, accuracy, deviceId, gpsSamples, classId } = req.body;
+    const { studentId, otp, lat, lng, accuracy, deviceId, localFallback, gpsSamples, classId } = req.body;
 
     if (!studentId || !otp || lat === undefined || lng === undefined || !classId) {
       return res.status(400).json({ error: "Missing required fields, including class selection." });
@@ -183,7 +183,7 @@ export default async function handler(req: any, res: any) {
       return res.status(404).json({ error: "Student profile not found." });
     }
 
-    if (profile.device_id && profile.device_id !== deviceId) {
+    if (profile.device_id && profile.device_id !== deviceId && profile.device_id !== localFallback) {
       // Device mismatch — someone is using a different device
       return res.status(403).json({ 
         error: "Device Mismatch: Your account is registered to another device. If you have a new phone, please ask your teacher to 'Reset Your Device Link' during class." 

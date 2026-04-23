@@ -202,9 +202,11 @@ export default function App() {
            
          if (profileData && profileData.device_id) {
            const fingerprint = await getDeviceFingerprint();
-           if (profileData.device_id !== fingerprint) {
+           const localFallback = localStorage.getItem('device_id');
+           // If the database matches EITHER the newly generated fingerprint OR the one we have saved in their browser
+           if (profileData.device_id !== fingerprint && profileData.device_id !== localFallback) {
              await supabase.auth.signOut();
-             throw new Error('Device Mismatch: Your account is locked to another device (likely the smartphone you used during registration). If you changed your phone, please ask your teacher to \"Reset Your Device Link\" during class.');
+             throw new Error('Device Mismatch: Your account is locked to another device (likely the smartphone you used during registration). If you changed your phone, please ask your teacher to "Reset Your Device Link" during class.');
            }
          }
       }
