@@ -1,0 +1,7 @@
+graph TD
+    Client[Progressive Web App - React 19] --> API[Supabase API / Edge Functions]
+    API --> DB[(PostgreSQL Database)]
+    API --> Auth[Supabase Auth]
+    API --> Realtime[Supabase Realtime]
+    Client -.-> OfflineCache[Service Worker / Cache Storage]
+    Client -.-> DeviceHardware[Device Storage / Fingerprint]

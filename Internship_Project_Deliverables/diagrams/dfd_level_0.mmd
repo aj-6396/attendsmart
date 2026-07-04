@@ -1,0 +1,6 @@
+graph LR
+    Student((Student)) --> |Marks Attendance| AMS[Attendance Management System]
+    Teacher((Teacher)) --> |Manages Sessions| AMS
+    Admin((Admin)) --> |Monitors System| AMS
+    AMS --> |Exports Data| Reports[CSV/PDF Reports]
+    AMS --> |Saves Data| DB[(Supabase Cloud)]

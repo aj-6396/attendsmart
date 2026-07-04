@@ -1,0 +1,9 @@
+erDiagram
+    USERS ||--o| STUDENT_PROFILES : has
+    USERS ||--o| TEACHER_PROFILES : has
+    USERS ||--o{ CLASSES : "creates/co-teaches"
+    CLASSES ||--o{ CLASS_ENROLLMENTS : contains
+    USERS ||--o{ CLASS_ENROLLMENTS : enrolls
+    CLASSES ||--o{ ATTENDANCE_SESSIONS : hosts
+    ATTENDANCE_SESSIONS ||--o{ ATTENDANCE_RECORDS : logs
+    USERS ||--o{ ATTENDANCE_RECORDS : submits

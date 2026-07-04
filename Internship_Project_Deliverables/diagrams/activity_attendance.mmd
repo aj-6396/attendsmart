@@ -1,0 +1,8 @@
+stateDiagram-v2
+    [*] --> Start
+    Start --> CheckGeo : Enter OTP
+    CheckGeo --> CheckDevice : Verify Distance
+    CheckDevice --> SaveRecord : Match Fingerprint
+    CheckDevice --> Error : Fingerprint Mismatch
+    CheckGeo --> Error : Too Far
+    SaveRecord --> [*] : Success

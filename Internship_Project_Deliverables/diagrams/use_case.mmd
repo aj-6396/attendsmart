@@ -1,0 +1,23 @@
+flowchart LR
+    subgraph Users
+        S[Student]
+        T[Teacher]
+        A[Admin]
+    end
+    
+    subgraph System
+        R[Register Account]
+        JC[Join Class]
+        MA[Mark Attendance]
+        CC[Create Class]
+        SS[Start Session]
+        ER[Export Report]
+    end
+    
+    S --> R
+    S --> JC
+    S --> MA
+    
+    T --> CC
+    T --> SS
+    T --> ER

@@ -1,0 +1,45 @@
+classDiagram
+    class User {
+        +UUID id
+        +String name
+        +String role
+        +DateTime created_at
+    }
+    class StudentProfile {
+        +String enrollment_no
+        +String exam_roll_no
+        +String course
+        +String semester
+        +String device_id
+    }
+    class TeacherProfile {
+        +String employee_id
+        +String department
+    }
+    class Class {
+        +UUID id
+        +String name
+        +String join_code
+    }
+    class AttendanceSession {
+        +UUID id
+        +String otp
+        +DateTime expires_at
+        +Float lat
+        +Float lng
+        +Boolean active
+    }
+    class AttendanceRecord {
+        +UUID id
+        +Float lat
+        +Float lng
+        +String device_id
+        +Boolean manual
+    }
+    
+    User "1" -- "1" StudentProfile
+    User "1" -- "1" TeacherProfile
+    User "1" -- "*" Class : creates
+    Class "1" -- "*" AttendanceSession : has
+    AttendanceSession "1" -- "*" AttendanceRecord : records
+    User "1" -- "*" AttendanceRecord : marks

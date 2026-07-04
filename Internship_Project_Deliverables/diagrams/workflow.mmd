@@ -1,0 +1,12 @@
+flowchart TD
+    A[Teacher creates Class] --> B[System generates Join Code]
+    B --> C[Student joins Class using Code]
+    C --> D[Teacher starts Attendance Session]
+    D --> E[System generates OTP & captures Teacher Location]
+    E --> F[Student enters OTP]
+    F --> G[System captures Student Location & Device ID]
+    G --> H{Distance < Radius?}
+    H -->|Yes| I{Device ID Match?}
+    H -->|No| J[Reject - Too far]
+    I -->|Yes| K[Mark Present]
+    I -->|No| L[Reject - Device Locked]

@@ -1,0 +1,18 @@
+sequenceDiagram
+    actor Student
+    participant PWA as PWA Frontend
+    participant Supabase as Supabase Auth
+    participant DB as PostgreSQL (Users Table)
+    
+    Student->>PWA: Enters Credentials
+    PWA->>Supabase: signInWithPassword(email, pass)
+    Supabase-->>PWA: JWT Token & User ID
+    PWA->>DB: Fetch User Profile (Role, Device ID)
+    DB-->>PWA: Profile Data
+    PWA->>PWA: Verify Device Fingerprint
+    alt Device Matches
+        PWA-->>Student: Navigate to Dashboard
+    else Device Mismatch
+        PWA->>Supabase: signOut()
+        PWA-->>Student: Show Error "Device Locked"
+    end
