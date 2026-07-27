@@ -16,31 +16,31 @@ export default function ConsentModal({ onAccept }: ConsentModalProps) {
 
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 24 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
-        style={{ maxHeight: '90vh' }}
+        className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: '95vh' }}
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-slate-100">
+        <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-11 h-11 rounded-[14px] flex items-center justify-center" style={{ background: 'var(--color-primary, #002147)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#002147] dark:bg-blue-600">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Before You Continue</h2>
-              <p className="text-xs text-slate-500">Please review and accept our legal documents</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Before You Continue</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Please review and accept our legal documents</p>
             </div>
           </div>
 
           {/* Data notice */}
-          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-[12px] flex gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800 leading-relaxed">
-              ClassMark collects your <strong>GPS location</strong> and a <strong>hardware device fingerprint</strong> to prevent proxy attendance. Your data is used solely for attendance verification.
+          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl flex gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+              ClassMark collects your <strong>GPS location</strong> and an <strong>anonymous hardware device ID</strong> to prevent proxy attendance. Your data is used solely for attendance verification.
             </p>
           </div>
         </div>
@@ -73,14 +73,14 @@ export default function ConsentModal({ onAccept }: ConsentModalProps) {
 
         {/* Content Area */}
         <div
-          className="flex-1 overflow-y-auto px-6 py-4 text-slate-700 text-xs leading-relaxed space-y-4"
+          className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 text-slate-700 text-xs leading-relaxed space-y-4"
           style={{ minHeight: 0 }}
         >
           {tab === 'privacy' ? <PrivacyContent /> : <TermsContent />}
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-6 pt-4 border-t border-slate-100 space-y-4">
+        <div className="px-4 sm:px-6 pb-5 sm:pb-6 pt-3 sm:pt-4 border-t border-slate-100 space-y-3 sm:space-y-4 safe-area-bottom">
           {/* Checkbox */}
           <label className="flex items-start gap-3 cursor-pointer group">
             <div
@@ -176,6 +176,7 @@ function PrivacyContent() {
           <li>We do NOT track your location continuously — only during the attendance action.</li>
           <li>We do NOT sell or share your data with advertisers.</li>
           <li>We do NOT collect biometric data, financial data, or national IDs.</li>
+          <li>The Device Identifier collected is an anonymous Android Hardware signature. It cannot be used to personally track your device activities across other apps.</li>
         </ul>
       </Section>
 
@@ -183,7 +184,8 @@ function PrivacyContent() {
         <ul className="list-disc pl-4 space-y-1">
           <li><strong>Supabase</strong> — Database & authentication (GDPR & SOC 2 compliant).</li>
           <li><strong>Vercel</strong> — API hosting (does not store personal data).</li>
-          <li><strong>FingerprintJS (open-source)</strong> — Device ID generation, runs entirely on-device, no data sent to FingerprintJS servers.</li>
+          <li><strong>Android Hardware ID</strong> (Native App) — Generates a completely secure, un-spoofable hardware-based identifier for attendance locking.</li>
+          <li><strong>FingerprintJS (open-source)</strong> (Web version) — Fallback device ID generation if running in a standard web browser.</li>
         </ul>
       </Section>
 

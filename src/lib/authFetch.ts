@@ -5,6 +5,16 @@
  * in the Authorization header for all API calls.
  */
 import { supabase } from '../supabase';
+import { Capacitor } from '@capacitor/core';
+
+// Automatically prepend the Vercel Production URL for Native Android API calls
+const getApiUrl = (url: string) => {
+  if (Capacitor.isNativePlatform() && url.startsWith('/api')) {
+    const baseUrl = import.meta.env.VITE_VERCEL_URL || 'https://classmark-seven.vercel.app';
+    return `${baseUrl.replace(/\/$/, '')}${url}`;
+  }
+  return url;
+};
 
 /**
  * Makes an authenticated API request by including the current session JWT.
@@ -22,7 +32,9 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
 
-  return fetch(url, {
+  const finalUrl = getApiUrl(url);
+
+  return fetch(finalUrl, {
     ...options,
     headers,
   });

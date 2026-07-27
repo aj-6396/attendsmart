@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ClassMark</string>
+    <string name="title_activity_main">ClassMark</string>
+    <string name="package_name">com.classmark.app</string>
+    <string name="custom_url_scheme">com.classmark.app</string>
+</resources>
