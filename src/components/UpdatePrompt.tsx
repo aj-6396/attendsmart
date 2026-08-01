@@ -4,8 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import { Download } from 'lucide-react';
 import { motion } from 'motion/react';
 
-// TODO: Replace with your actual GitHub username and repository name
-const GITHUB_REPO = 'aj-6396/classmark';
+// GitHub repository name for release updates
+const GITHUB_REPO = 'aj-6396/attendsmart';
 
 interface ReleaseInfo {
   version: string;

@@ -15,6 +15,7 @@ import { cn } from '../lib/utils';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ThemeToggle from './ThemeToggle';
+import { downloadFile } from '../lib/fileDownload';
 
 interface Session {
   id: string;
@@ -264,24 +265,8 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
         ...rows.map(r => r.join(','))
       ].join('\n');
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      
-      // Sanitize filename for Windows
       const safeClassName = activeClass.name.replace(/[^a-zA-Z0-9 -]/g, '').trim();
-      link.setAttribute('download', `Attendance_${safeClassName}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-      
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup to prevent memory leaks and permission errors
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
+      await downloadFile(`Attendance_${safeClassName}_${format(new Date(), 'yyyy-MM-dd')}.csv`, csvContent, 'text/csv;charset=utf-8;');
       
       setSuccess('Register exported successfully!');
     } catch (err: any) {
@@ -391,7 +376,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
         }
       });
 
-      doc.save(`Attendance_${activeClass.name.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      const pdfBlob = doc.output('blob');
+      const safeClassName = activeClass.name.replace(/[^a-zA-Z0-9]/g, '_');
+      await downloadFile(`Attendance_${safeClassName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`, pdfBlob, 'application/pdf');
       setSuccess('PDF Report generated successfully!');
     } catch (err: any) {
       console.error('PDF Export Error:', err);
@@ -697,37 +684,29 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       setLoading(false);
     }
   };
-  const exportAttendance = () => {
+  const exportAttendance = async () => {
     if (attendance.length === 0) return;
-    
-    const csvContent = [
-      ['Student Name', 'Enrollment No', 'Exam Roll No', 'Timestamp'],
-      ...attendance.map(a => {
-        const studentProfileData = a.users.student_profiles;
-        const studentProfile = Array.isArray(studentProfileData) ? studentProfileData[0] : studentProfileData;
-        return [
-          a.users.name || 'Unknown',
-          studentProfile?.enrollment_no || 'N/A',
-          studentProfile?.exam_roll_no || 'N/A',
-          format(new Date(a.created_at), 'yyyy-MM-dd HH:mm:ss')
-        ];
-      })
-    ].map(e => e.join(",")).join("\n");
+    try {
+      const csvContent = [
+        ['Student Name', 'Enrollment No', 'Exam Roll No', 'Timestamp'],
+        ...attendance.map(a => {
+          const studentProfileData = a.users.student_profiles;
+          const studentProfile = Array.isArray(studentProfileData) ? studentProfileData[0] : studentProfileData;
+          return [
+            a.users.name || 'Unknown',
+            studentProfile?.enrollment_no || 'N/A',
+            studentProfile?.exam_roll_no || 'N/A',
+            format(new Date(a.created_at), 'yyyy-MM-dd HH:mm:ss')
+          ];
+        })
+      ].map(e => e.join(",")).join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `attendance_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup to prevent memory leaks and permission errors
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 100);
+      await downloadFile(`attendance_${format(new Date(), 'yyyy-MM-dd')}.csv`, csvContent, 'text/csv;charset=utf-8;');
+      setSuccess('Session attendance CSV exported successfully!');
+    } catch (err: any) {
+      console.error('Session CSV export error:', err);
+      setError('Failed to export session CSV: ' + (err.message || err));
+    }
   };
 
   return (

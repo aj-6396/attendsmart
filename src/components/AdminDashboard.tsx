@@ -12,6 +12,9 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 import ThemeToggle from './ThemeToggle';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { downloadFile } from '../lib/fileDownload';
 
 type ActiveTab = 'overview' | 'teachers' | 'students' | 'classes';
 
@@ -43,6 +46,113 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
+
+  // Export System Report as PDF
+  const exportSystemReportPDF = async () => {
+    try {
+      setLoading(true);
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      doc.setFontSize(22);
+      doc.setTextColor(79, 70, 229);
+      doc.text('ClassMark - System Admin Report', 14, 20);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Generated on: ${format(new Date(), 'PPPP p')}`, 14, 27);
+
+      // Summary Table
+      const summaryHead = [['Metric', 'Total Count']];
+      const summaryBody = [
+        ['Total Registered Students', stats?.students || 0],
+        ['Total Faculty Teachers', stats?.teachers || 0],
+        ['Active Classes', stats?.classes || 0],
+        ['Total Attendance Sessions', stats?.sessions || 0],
+        ['Critical Students (<75% Attendance)', lowAttendanceStudents.length],
+      ];
+
+      autoTable(doc, {
+        head: summaryHead,
+        body: summaryBody,
+        startY: 33,
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
+      });
+
+      // Critical Roster Table if any
+      if (lowAttendanceStudents.length > 0) {
+        const lastY = (doc as any).lastAutoTable.finalY + 10;
+        doc.setFontSize(14);
+        doc.setTextColor(225, 29, 72);
+        doc.text('Critical Attendance Roster (< 75%)', 14, lastY);
+
+        const criticalHead = [['S.No', 'Student Name', 'Attendance Rate']];
+        const criticalBody = lowAttendanceStudents.map((s, idx) => [
+          idx + 1,
+          s.name,
+          `${s.attendance_percentage}%`
+        ]);
+
+        autoTable(doc, {
+          head: criticalHead,
+          body: criticalBody,
+          startY: lastY + 4,
+          theme: 'grid',
+          headStyles: { fillColor: [225, 29, 72], textColor: [255, 255, 255] },
+        });
+      }
+
+      const pdfBlob = doc.output('blob');
+      await downloadFile(`System_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`, pdfBlob, 'application/pdf');
+      setSuccess('System PDF Report downloaded successfully!');
+    } catch (err: any) {
+      console.error('System PDF export error:', err);
+      setError('Failed to export system PDF report.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Export Current Tab (Teachers / Students / Classes) as CSV
+  const exportActiveTabCSV = async () => {
+    try {
+      let csvData = '';
+      let filename = `ClassMark_${activeTab}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+
+      if (activeTab === 'teachers') {
+        const headers = ['Name', 'Email'];
+        const rows = teachers.map(t => [t.name, t.email]);
+        csvData = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      } else if (activeTab === 'students') {
+        const headers = ['Name', 'Enrollment No', 'Course', 'Semester'];
+        const rows = students.map(s => {
+          const prof = Array.isArray(s.student_profiles) ? s.student_profiles[0] : s.student_profiles;
+          return [s.name, prof?.enrollment_no || '', prof?.course || '', prof?.semester || ''];
+        });
+        csvData = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      } else if (activeTab === 'classes') {
+        const headers = ['Class Name', 'Join Code', 'Teacher Owner'];
+        const rows = classes.map(c => [c.name, c.join_code, c.users?.name || 'System']);
+        csvData = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      } else {
+        const rows = [
+          ['Metric', 'Value'],
+          ['Total Students', stats?.students || 0],
+          ['Total Teachers', stats?.teachers || 0],
+          ['Classes', stats?.classes || 0],
+          ['Sessions', stats?.sessions || 0]
+        ];
+        csvData = rows.map(r => r.join(',')).join('\n');
+        filename = `System_Overview_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      }
+
+      await downloadFile(filename, csvData, 'text/csv;charset=utf-8;');
+      setSuccess(`${activeTab.toUpperCase()} CSV downloaded successfully!`);
+    } catch (err: any) {
+      console.error('Export CSV error:', err);
+      setError('Failed to export CSV file.');
+    }
+  };
 
   useEffect(() => {
     fetchInitialData();
@@ -341,9 +451,12 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
            <button onClick={fetchInitialData} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all text-slate-500 hover:text-indigo-600 shadow-sm">
               <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
            </button>
-           <button className="btn-gradient px-6 py-3 flex items-center gap-2 shadow-xl shadow-indigo-100">
+           <button onClick={exportSystemReportPDF} className="btn-gradient px-6 py-3 flex items-center gap-2 shadow-xl shadow-indigo-100">
               <Download className="w-5 h-5" />
-              System Report
+              System Report (PDF)
+           </button>
+           <button onClick={exportActiveTabCSV} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all text-slate-500 hover:text-indigo-600 shadow-sm" title="Export CSV">
+              <Folder className="w-5 h-5" />
            </button>
            <button onClick={onLogout} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm" title="Logout">
               <LogOut className="w-5 h-5" />
@@ -462,15 +575,21 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
           </motion.div>
         ) : (
           <motion.div key="management" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-               <div className="relative group w-full max-w-md">
-                 <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-600 transition-all" />
-                 <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-100 rounded-[1.25rem] shadow-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all font-medium text-slate-700" placeholder={`Search ${activeTab}...`} />
-               </div>
-               {activeTab === 'teachers' && (
-                  <button onClick={() => setShowCreateTeacher(true)} className="btn-gradient px-7 py-3.5 flex items-center gap-2 shadow-lg shadow-indigo-100"><UserPlus className="w-5 h-5" />New Teacher</button>
-               )}
-            </div>
+             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative group w-full max-w-md">
+                  <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-600 transition-all" />
+                  <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-100 rounded-[1.25rem] shadow-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all font-medium text-slate-700" placeholder={`Search ${activeTab}...`} />
+                </div>
+                <div className="flex items-center gap-2">
+                   <button onClick={exportActiveTabCSV} className="px-4 py-3 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-2xl hover:bg-slate-50 flex items-center gap-2 shadow-sm">
+                      <Download className="w-4 h-4 text-indigo-600" />
+                      Export {activeTab.toUpperCase()} CSV
+                   </button>
+                   {activeTab === 'teachers' && (
+                      <button onClick={() => setShowCreateTeacher(true)} className="btn-gradient px-7 py-3.5 flex items-center gap-2 shadow-lg shadow-indigo-100"><UserPlus className="w-5 h-5" />New Teacher</button>
+                   )}
+                </div>
+             </div>
 
             <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
                <div className="overflow-x-auto">
