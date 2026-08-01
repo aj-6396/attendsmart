@@ -13,6 +13,8 @@ import { getAveragedPosition } from '../lib/geo';
 import { getDeviceFingerprint } from '../lib/device';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
+import { notifySessionStarted, notifyAttendanceMarked, notifyAbsentInClass, schedule5PMAttendanceNotification } from '../lib/notifications';
+import { queueOfflineAttendance, syncOfflineQueue, getOfflineQueueCount } from '../lib/offlineQueue';
 
 interface AttendanceRecord {
   id: string;
@@ -32,7 +34,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
   const [joinCode, setJoinCode] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+  const [status, setStatus] = useState<{ type: 'success' | 'error' | 'warning' | null; message: string }>({ type: null, message: '' });
   const [history, setHistory] = useState<AttendanceRecord[]>([]);
   const [stats, setStats] = useState({ attended: 0, total: 0, percentage: 0 });
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
@@ -66,6 +68,81 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
     };
     fetchClasses();
   }, [user.id, activeClass?.id]);
+
+  // Realtime Session Start Listener for Notifications
+  useEffect(() => {
+    if (classes.length === 0) return;
+    const classIds = classes.map(c => c.id);
+
+    const channel = supabase
+      .channel('session_starts_notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'attendance_sessions',
+      }, (payload: any) => {
+        if (payload.new && classIds.includes(payload.new.class_id)) {
+          const cls = classes.find(c => c.id === payload.new.class_id);
+          notifySessionStarted(cls ? cls.name : 'your class');
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [classes]);
+
+  // Daily 5:00 PM Absence Check Notification
+  useEffect(() => {
+    const checkAbsenceAt5PM = async () => {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const storageKey = `classmark_5pm_notified_${user.id}_${todayStr}`;
+      
+      // Only run if hour >= 17 (5 PM) and hasn't notified today
+      if (now.getHours() >= 17 && !localStorage.getItem(storageKey)) {
+        try {
+          if (classes.length === 0) return;
+          const classIds = classes.map(c => c.id);
+
+          // Get today's sessions for enrolled classes
+          const { data: todaySessions } = await supabase
+            .from('attendance_sessions')
+            .select('id, class_id')
+            .in('class_id', classIds)
+            .gte('created_at', `${todayStr}T00:00:00.000Z`);
+
+          if (todaySessions && todaySessions.length > 0) {
+            // Get student's attendance records for today
+            const { data: records } = await supabase
+              .from('attendance_records')
+              .select('session_id')
+              .eq('student_id', user.id);
+
+            const attendedSessionIds = new Set((records || []).map((r: any) => r.session_id));
+
+            // Check which enrolled classes held sessions today that student missed
+            for (const s of todaySessions) {
+              if (!attendedSessionIds.has(s.id)) {
+                const cls = classes.find(c => c.id === s.class_id);
+                if (cls) {
+                  notifyAbsentInClass(cls.name);
+                }
+              }
+            }
+          }
+          localStorage.setItem(storageKey, 'true');
+        } catch (e) {
+          console.error('5PM Absence check error:', e);
+        }
+      }
+    };
+
+    checkAbsenceAt5PM();
+    const interval = setInterval(checkAbsenceAt5PM, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [classes, user.id]);
 
   const handleJoinClass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,31 +265,56 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
         // Get hardware-based device fingerprint (survives cache clearing)
         const deviceId = await getDeviceFingerprint();
         
-        const response = await authFetch('/api/attendance/mark', {
-          method: 'POST',
-          body: JSON.stringify({
-            classId: activeClass?.id,
-            otp,
-            lat: pos.latitude,
-            lng: pos.longitude,
-            accuracy: pos.accuracy,
-            deviceId: deviceId,
-            localFallback: localStorage.getItem('device_id'),
-            gpsSamples: pos.rawSamples
-          })
-        });
+        const payload = {
+          classId: activeClass?.id,
+          otp,
+          lat: pos.latitude,
+          lng: pos.longitude,
+          accuracy: pos.accuracy,
+          deviceId: deviceId,
+          localFallback: localStorage.getItem('device_id'),
+          gpsSamples: pos.rawSamples
+        };
 
-        const data = await response.json();
-        if (!response.ok) {
-          if (data.distance && data.allowedRadius) {
-            throw new Error(`You are too far (${data.distance}m). Please move slightly closer to the classroom.`);
-          }
-          throw new Error(data.error || 'Failed to mark attendance');
+        // If offline upfront, queue immediately
+        if (!navigator.onLine) {
+          await queueOfflineAttendance(activeClass?.name || 'Class', payload);
+          setStatus({ type: 'warning', message: '📶 Saved Offline! Your attendance is queued and will automatically sync when internet returns.' });
+          setOtp('');
+          setRetryCount(0);
+          return;
         }
 
-        setStatus({ type: 'success', message: 'Attendance marked successfully!' });
-        setOtp('');
-        setRetryCount(0);
+        try {
+          const response = await authFetch('/api/attendance/mark', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            if (data.distance && data.allowedRadius) {
+              throw new Error(`You are too far (${data.distance}m). Please move slightly closer to the classroom.`);
+            }
+            throw new Error(data.error || 'Failed to mark attendance');
+          }
+
+          setStatus({ type: 'success', message: 'Attendance marked successfully!' });
+          notifyAttendanceMarked(activeClass?.name || 'Class');
+          schedule5PMAttendanceNotification(activeClass?.name || 'Class', 'present');
+          setOtp('');
+          setRetryCount(0);
+        } catch (fetchErr: any) {
+          // If fetch fails due to network outage, queue locally!
+          if (fetchErr && (fetchErr.message?.includes('Failed to fetch') || fetchErr.message?.includes('NetworkError') || !navigator.onLine)) {
+            await queueOfflineAttendance(activeClass?.name || 'Class', payload);
+            setStatus({ type: 'warning', message: '📶 Saved Offline! Your connection dropped, but your attendance is queued and will auto-sync when internet returns.' });
+            setOtp('');
+            setRetryCount(0);
+            return;
+          }
+          throw fetchErr;
+        }
       })()]);
 
     } catch (err: any) {
@@ -258,22 +360,24 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
         </div>
 
         {showJoinClass && (
-          <div className="glass-card p-6">
-            <h3 className="font-bold mb-4 text-[--color-text-primary]">Enter Class Code</h3>
-            <form onSubmit={handleJoinClass} className="flex gap-4">
+          <div className="glass-card p-4 sm:p-6">
+            <h3 className="font-bold mb-3 text-[--color-text-primary]">Enter Class Code</h3>
+            <form onSubmit={handleJoinClass} className="flex flex-col sm:flex-row gap-3">
               <input 
                 type="text" 
                 value={joinCode} 
                 onChange={e => setJoinCode(e.target.value.toUpperCase())} 
                 placeholder="e.g. A1B2C3" 
-                className="field-input flex-1 uppercase tracking-widest font-mono" 
+                className="field-input w-full sm:flex-1 uppercase tracking-widest font-mono text-center sm:text-left" 
                 maxLength={6}
                 required 
               />
-              <button disabled={loading} type="submit" className="btn-gradient w-32 h-12">
-                {loading ? <Loader2 className="animate-spin mx-auto w-5 h-5"/> : 'Join'}
-              </button>
-              <button type="button" onClick={() => setShowJoinClass(false)} className="px-4 py-2 border rounded-xl hover:bg-slate-50 text-[--color-text-secondary]">Cancel</button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button disabled={loading} type="submit" className="btn-gradient flex-1 sm:w-32 h-11 text-sm font-bold">
+                  {loading ? <Loader2 className="animate-spin mx-auto w-5 h-5"/> : 'Join'}
+                </button>
+                <button type="button" onClick={() => setShowJoinClass(false)} className="px-4 h-11 border rounded-xl hover:bg-slate-50 text-[--color-text-secondary] text-sm font-semibold">Cancel</button>
+              </div>
             </form>
           </div>
         )}
@@ -343,33 +447,34 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
       <div className="lg:col-span-3 mb-[-1rem]">
-         <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100">
-           <div className="flex items-center gap-4">
-             <button onClick={() => { setActiveClass(null); setStatus({ type: null, message: '' }); }} className="p-2 hover:bg-slate-50 rounded-lg text-[--color-text-secondary] hover:text-[--color-primary]">
+         <div className="flex items-center justify-between bg-white px-4 sm:px-6 py-4 rounded-2xl shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700">
+           <div className="flex items-center gap-3 min-w-0">
+             <button onClick={() => { setActiveClass(null); setStatus({ type: null, message: '' }); }} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-slate-500 hover:text-indigo-600 shrink-0">
                 <ArrowLeftIcon className="w-5 h-5" />
              </button>
-             <div>
-               <h2 className="text-xl font-bold text-[--color-text-primary]">{activeClass.name}</h2>
-               <p className="text-xs text-[--color-text-secondary]">Class Dashboard</p>
+             <div className="min-w-0 flex-1">
+               <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">{activeClass.name}</h2>
+               <p className="text-xs text-slate-500 dark:text-slate-400">Class Dashboard</p>
              </div>
            </div>
          </div>
       </div>
 
-      <div className="lg:col-span-2 space-y-8">
+      <div className="lg:col-span-2 space-y-4 sm:space-y-8">
         <section className="glass-card">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-[--color-text-primary]">{profile.name}</h1>
-              <p className="text-[--color-text-secondary] text-sm flex items-center gap-2 mt-1">
-                <GraduationCap className="w-4 h-4" />
-                {profile.course} • {profile.semester} Semester • {profile.major_subject} • Batch {profile.batch}
+              <p className="text-[--color-text-secondary] text-sm flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
+                <GraduationCap className="w-4 h-4 shrink-0" />
+                <span>{profile.course} • {profile.semester} Sem • {profile.major_subject}</span>
+                <span className="hidden sm:inline">• Batch {profile.batch}</span>
               </p>
             </div>
             {/* Student Detail Box */}
-            <div className="glass-card--primary p-4 min-w-[200px]">
+            <div className="glass-card--primary p-3 sm:p-4 min-w-0 sm:min-w-[200px]">
               <h3 className="text-sm font-semibold text-[--color-text-secondary] mb-3 text-center">Student Details</h3>
               <div className="space-y-3">
                 <div className="text-center">
@@ -387,7 +492,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
 
         <section>
           <div className="glass-card overflow-hidden">
-            <div className="bg-gradient-to-r from-[#002147] to-[#004080] dark:from-[#39ff14] dark:to-[#00ff41] p-6 text-white dark:text-black">
+            <div className="bg-gradient-to-r from-[#002147] to-[#004080] dark:from-[#39ff14] dark:to-[#00ff41] p-4 sm:p-6 text-white dark:text-black">
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <ShieldCheck className="w-6 h-6" />
                 Mark Attendance
@@ -395,7 +500,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
               <p className="text-black/80 text-sm mt-1">Enter the 4-digit OTP provided by your teacher.</p>
             </div>
             
-            <div className="p-8">
+            <div className="p-4 sm:p-8">
               {locationPermission === 'denied' && (
                 <div className="alert alert--error mb-6">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -450,7 +555,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                       placeholder="0000"
-                      className="field-input text-center text-4xl font-black tracking-[0.5em] w-full"
+                      className="field-input text-center text-3xl sm:text-4xl font-black tracking-[0.3em] sm:tracking-[0.5em] w-full"
                     />
                   </div>
                 </div>
@@ -462,7 +567,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       className={cn(
-                        status.type === 'success' ? "alert alert--success" : "alert alert--error"
+                        status.type === 'success' ? "alert alert--success" : status.type === 'warning' ? "alert alert--warning" : "alert alert--error"
                       )}
                     >
                       {status.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
@@ -510,31 +615,31 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
             <History className="w-5 h-5 text-indigo-600" />
             Recent Attendance
           </h2>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto dark:bg-slate-800 dark:border-slate-700">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50 text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100">
-                  <th className="py-3 px-6">Date & Time</th>
-                  <th className="py-3 px-6">Teacher</th>
-                  <th className="py-3 px-6 text-right">Status</th>
+                  <th className="py-3 px-3 sm:px-6">Date & Time</th>
+                  <th className="py-3 px-3 sm:px-6">Teacher</th>
+                  <th className="py-3 px-3 sm:px-6 text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {history.length > 0 ? (
                   history.map((record) => (
                     <tr key={record.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-6">
-                        <div className="font-medium text-[--color-text-primary]">
+                      <td className="py-3 sm:py-4 px-3 sm:px-6">
+                        <div className="font-medium text-[--color-text-primary] text-sm">
                           {format(new Date(record.created_at), 'MMM dd, yyyy')}
                         </div>
                         <div className="text-xs text-[--color-text-secondary]">
                           {format(new Date(record.created_at), 'HH:mm')}
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-[--color-text-secondary] text-sm">
+                      <td className="py-3 sm:py-4 px-3 sm:px-6 text-[--color-text-secondary] text-sm max-w-[120px] truncate">
                         {record.attendance_sessions?.teacher?.name || 'Unknown'}
                       </td>
-                      <td className="py-4 px-6 text-right">
+                      <td className="py-3 sm:py-4 px-3 sm:px-6 text-right">
                         <span className="badge badge--success">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Present

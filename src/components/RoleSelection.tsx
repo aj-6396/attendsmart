@@ -12,13 +12,13 @@ interface RoleSelectionProps {
 export default function RoleSelection({ onSelectRole, darkMode, toggleDarkMode }: RoleSelectionProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6">
-      <div className="w-full max-w-2xl mb-10 glass-card p-4 flex items-center justify-between border border-[--color-glass-border] bg-white/10 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="icon-box--sm icon-box--primary">
-            <ShieldCheck className="w-4 h-4 text-white" />
+      <div className="w-full max-w-2xl mb-6 sm:mb-8 p-3 sm:p-4 flex items-center justify-between border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm mx-2 sm:mx-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#002147] dark:bg-blue-600 flex items-center justify-center text-white">
+            <ShieldCheck className="w-4 h-4" />
           </div>
-          <span className="text-xl sm:text-2xl font-bold text-[--color-primary] dark:text-white tracking-tight">
-            Class Mark
+          <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+            ClassMark
           </span>
         </div>
         <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
@@ -29,7 +29,7 @@ export default function RoleSelection({ onSelectRole, darkMode, toggleDarkMode }
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-center mb-12 sm:mb-16"
+        className="text-center mb-8 sm:mb-12 md:mb-16"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[--color-text-primary] mb-3">
           Choose Your Role
@@ -40,7 +40,7 @@ export default function RoleSelection({ onSelectRole, darkMode, toggleDarkMode }
       </motion.div>
 
       {/* Role Buttons Container */}
-      <div className="grid grid-cols-1 gap-5 w-full max-w-2xl">
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 w-full max-w-2xl px-2 sm:px-0">
         {/* Student Card */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
@@ -55,15 +55,15 @@ export default function RoleSelection({ onSelectRole, darkMode, toggleDarkMode }
           <div className="absolute inset-0 bg-[--color-primary] opacity-0 group-hover:opacity-5 transition-opacity duration-500" />
           
           {/* Glass card */}
-          <div className="relative glass-card p-6 sm:p-8 h-full flex flex-col items-center justify-center border-2 border-[--color-glass-border] group-hover:border-[--color-primary]/50 transition-all duration-500">
+          <div className="relative glass-card p-5 sm:p-6 md:p-8 h-full flex flex-col items-center justify-center border-2 border-[--color-glass-border] group-hover:border-[--color-primary]/50 transition-all duration-500">
             {/* Icon Container */}
             <motion.div
               whileHover={{ rotate: 10, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300, damping: 10 }}
-              className="mb-6"
+              className="mb-4 sm:mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500" style={{ backgroundColor: "var(--color-primary)" }}>
-                <GraduationCap className="w-10 h-10 text-white" />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500" style={{ backgroundColor: "var(--color-primary)" }}>
+                <GraduationCap className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               </div>
             </motion.div>
 
@@ -100,15 +100,15 @@ export default function RoleSelection({ onSelectRole, darkMode, toggleDarkMode }
           <div className="absolute inset-0 bg-[--color-secondary] opacity-0 group-hover:opacity-5 transition-opacity duration-500" />
           
           {/* Glass card */}
-          <div className="relative glass-card p-6 sm:p-8 h-full flex flex-col items-center justify-center border-2 border-[--color-glass-border] group-hover:border-[--color-accent]/50 transition-all duration-500">
+          <div className="relative glass-card p-5 sm:p-6 md:p-8 h-full flex flex-col items-center justify-center border-2 border-[--color-glass-border] group-hover:border-[--color-accent]/50 transition-all duration-500">
             {/* Icon Container */}
             <motion.div
               whileHover={{ rotate: -10, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300, damping: 10 }}
-              className="mb-6"
+              className="mb-4 sm:mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500" style={{ backgroundColor: "var(--color-secondary)" }}>
-                <BookOpen className="w-10 h-10 text-white" />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center shadow-lg shadow-[--color-glass-border] group-hover:shadow-xl transition-all duration-500" style={{ backgroundColor: "var(--color-secondary)" }}>
+                <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               </div>
             </motion.div>
 

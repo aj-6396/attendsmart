@@ -31,6 +31,7 @@ interface Attendance {
   id: string;
   session_id: string;
   student_id: string;
+  manual?: boolean;
   users: {
     name: string;
     student_profiles: {
@@ -738,7 +739,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-4 z-[100] max-w-sm w-full"
+            className="fixed top-20 right-2 sm:right-4 left-2 sm:left-auto z-[100] max-w-sm w-auto sm:w-full"
           >
             {error && (
               <div className="alert alert--error shadow-2xl">
@@ -769,7 +770,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
           animate={{ opacity: 1 }}
           className="space-y-6"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900">
               <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
                 <Folder className="w-6 h-6 text-white" />
@@ -779,7 +780,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setShowCreateClass(true)} 
-                className="btn-gradient px-6 py-2.5 flex items-center gap-2 shadow-lg shadow-indigo-200"
+                className="btn-gradient px-4 sm:px-6 py-2.5 flex items-center gap-2 shadow-lg shadow-indigo-200 text-sm"
               >
                 <Plus className="w-5 h-5" />
                 Create Class
@@ -864,19 +865,19 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
           className="space-y-8"
         >
           {/* Class Header */}
-          <div className="flex items-center justify-between bg-white px-6 py-5 rounded-3xl shadow-sm border border-slate-100">
-             <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 sm:px-6 py-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+             <div className="flex items-center gap-3 min-w-0 flex-1">
                <button 
                  onClick={() => setActiveClass(null)} 
-                 className="w-10 h-10 flex items-center justify-center hover:bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
+                 className="w-10 h-10 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
                >
-                  <ArrowLeftIcon className="w-6 h-6" />
+                  <ArrowLeftIcon className="w-5 h-5" />
                </button>
-               <div>
-                 <h2 className="text-2xl font-black text-slate-900 leading-none mb-1">{activeClass.name}</h2>
-                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Class Access Code:</span>
-                    <span className="text-[11px] font-black text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded">{activeClass.join_code}</span>
+               <div className="min-w-0 flex-1">
+                 <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white leading-tight mb-0.5 truncate">{activeClass.name}</h2>
+                 <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Class Access Code:</span>
+                    <span className="text-[10px] sm:text-[11px] font-black text-indigo-600 dark:text-indigo-400 font-mono bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded">{activeClass.join_code}</span>
                  </div>
                </div>
              </div>
@@ -896,11 +897,11 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
              </div>
           </div>
 
-          <div className="flex gap-2 p-1.5 bg-slate-100/50 rounded-2xl w-fit">
+          <div className="flex gap-2 p-1.5 bg-slate-100/50 rounded-2xl w-full sm:w-fit overflow-x-auto">
             <button
               onClick={() => setActiveTab('session')}
               className={cn(
-                "px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2",
+                "px-4 sm:px-6 py-2.5 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap",
                 activeTab === 'session' 
                   ? "bg-white text-indigo-600 shadow-sm" 
                   : "text-slate-400 hover:text-slate-600"
@@ -912,7 +913,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
             <button
               onClick={() => setActiveTab('records')}
               className={cn(
-                "px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2",
+                "px-4 sm:px-6 py-2.5 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap",
                 activeTab === 'records' 
                   ? "bg-white text-indigo-600 shadow-sm" 
                   : "text-slate-400 hover:text-slate-600"
@@ -963,7 +964,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
 
                   {(activeSession || selectedPastSession) ? (
                     <div className="glass-card overflow-hidden">
-                      <div className="bg-[#0f172a] dark:bg-black p-8 text-white relative overflow-hidden">
+                      <div className="bg-[#0f172a] dark:bg-black p-4 sm:p-8 text-white relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-8 opacity-5">
                            <Clock className="w-32 h-32" />
                         </div>
@@ -972,9 +973,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                             <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
                               <div>
                                 <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Historical View</p>
-                                <h3 className="text-4xl sm:text-5xl font-black tracking-tighter text-white">Record for {format(new Date(selectedPastSession.created_at), 'MMM dd, yyyy')}</h3>
+                                <h3 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white">Record for {format(new Date(selectedPastSession.created_at), 'MMM dd, yyyy')}</h3>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                 <button 
                                   onClick={() => deleteSession(selectedPastSession.id)}
                                   className="px-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-bold transition-all text-sm uppercase tracking-widest whitespace-nowrap"
@@ -993,7 +994,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                             <>
                               <div>
                                 <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Entrance Code</p>
-                                <h3 className="text-7xl font-black tracking-tighter text-white font-mono">{activeSession?.otp}</h3>
+                                <h3 className="text-5xl sm:text-7xl font-black tracking-tighter text-white font-mono">{activeSession?.otp}</h3>
                               </div>
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
@@ -1014,12 +1015,12 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex gap-4">
+                              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                 <button
                                   onClick={() => endSession(activeSession!.id)}
                                   disabled={loading}
                                   className={cn(
-                                    "flex-1 px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest border-2",
+                                    "flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-black transition-all text-[10px] sm:text-xs uppercase tracking-widest border-2",
                                     "bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500 hover:text-white",
                                     "dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(245,158,11,0.4)]"
                                   )}
@@ -1030,7 +1031,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                   onClick={() => deleteSession(activeSession!.id)}
                                   disabled={loading}
                                   className={cn(
-                                    "flex-1 px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest border-2",
+                                    "flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-black transition-all text-[10px] sm:text-xs uppercase tracking-widest border-2",
                                     "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500 hover:text-white",
                                     "dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40 dark:hover:bg-red-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]"
                                   )}
@@ -1043,7 +1044,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                         </div>
                       </div>
 
-                      <div className="p-8">
+                      <div className="p-4 sm:p-8">
                         <div className="flex items-center justify-between mb-6">
                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Presence Log</h4>
                            <button onClick={exportAttendance} disabled={attendance.length === 0} className="text-xs font-black uppercase text-indigo-600 flex items-center gap-2 hover:bg-indigo-50 px-3 py-2 rounded-lg transition-colors">
@@ -1083,7 +1084,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-white/50 border-2 border-dashed border-slate-200 rounded-[2rem] p-16 text-center">
+                    <div className="bg-white/50 border-2 border-dashed border-slate-200 rounded-2xl sm:rounded-[2rem] p-8 sm:p-16 text-center">
                        <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
                           <Users className="w-10 h-10 text-slate-300" />
                        </div>
@@ -1141,49 +1142,51 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                 className="space-y-6"
               >
                 <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
-                  <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="p-4 sm:p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                      <div>
-                        <h3 className="text-xl font-black text-slate-900">Attendance Register</h3>
-                        <p className="text-xs text-slate-500 mt-1 font-medium">Tracking {filteredStudents.length} enrolled students</p>
+                        <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Attendance Register</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Tracking {filteredStudents.length} enrolled students</p>
                      </div>
-                     <div className="flex items-center gap-4">
-                        <div className="relative group">
+                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto flex-wrap">
+                        <div className="relative group flex-1 sm:w-64">
                            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-600 transition-colors" />
                            <input 
                              type="text" 
                              value={searchQuery}
                              onChange={e => setSearchQuery(e.target.value)}
                              placeholder="Search roster..." 
-                             className="pl-11 pr-6 py-3 bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 rounded-2xl text-sm outline-none w-full sm:w-64 transition-all"
+                             className="pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-indigo-200 rounded-2xl text-xs sm:text-sm outline-none w-full transition-all"
                            />
                         </div>
-                        <button 
-                         onClick={exportRegisterPDF} 
-                         disabled={loading || filteredStudents.length === 0}
-                         className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all font-black text-sm shadow-xl shadow-slate-200 disabled:opacity-50"
-                        >
-                           <Download className="w-5 h-5" />
-                           Download PDF
-                        </button>
-                        <button 
-                         onClick={exportFullRegister} 
-                         disabled={loading || filteredStudents.length === 0}
-                         className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all font-bold text-sm"
-                         title="Export CSV"
-                        >
-                           <Folder className="w-5 h-5" />
-                           CSV
-                        </button>
-                        <button onClick={fetchAllStudentStats} className={cn("p-3 bg-slate-50 rounded-2xl hover:bg-indigo-50 transition-colors", loading && "animate-spin")}>
-                           <RefreshCw className="w-5 h-5 text-indigo-600" />
-                        </button>
-                        <button 
-                         onClick={onLogout}
-                         className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm"
-                         title="Logout"
-                        >
-                           <LogOut className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                          <button 
+                           onClick={exportRegisterPDF} 
+                           disabled={loading || filteredStudents.length === 0}
+                           className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl hover:bg-black transition-all font-black text-xs shadow-md disabled:opacity-50"
+                          >
+                             <Download className="w-4 h-4" />
+                             <span>Download PDF</span>
+                          </button>
+                          <button 
+                           onClick={exportFullRegister} 
+                           disabled={loading || filteredStudents.length === 0}
+                           className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs"
+                           title="Export CSV"
+                          >
+                             <Folder className="w-4 h-4" />
+                             <span>CSV</span>
+                          </button>
+                          <button onClick={fetchAllStudentStats} className={cn("p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-indigo-50 transition-colors", loading && "animate-spin")}>
+                             <RefreshCw className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          </button>
+                          <button 
+                           onClick={onLogout}
+                           className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm"
+                           title="Logout"
+                          >
+                             <LogOut className="w-4 h-4" />
+                          </button>
+                        </div>
                      </div>
                   </div>
 
@@ -1191,24 +1194,25 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                     <table className="w-full">
                       <thead>
                         <tr className="bg-slate-50/50">
-                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-left">Student Information</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-left">Enrollment</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Score</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
+                          <th className="px-3 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] text-left">Student</th>
+                          <th className="px-3 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] text-left hidden sm:table-cell">Enrollment</th>
+                          <th className="px-3 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] text-center">Score</th>
+                          <th className="px-3 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
                         {filteredStudents.map(student => (
                           <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-8 py-6">
-                               <div className="text-slate-900 font-bold">{student.name}</div>
+                            <td className="px-3 sm:px-8 py-4 sm:py-6">
+                               <div className="text-slate-900 font-bold text-sm sm:text-base">{student.name}</div>
                                <div className="text-[10px] text-slate-400 uppercase font-black mt-1">Sem {student.semester || 'N/A'} • {student.major_subject || 'General'}</div>
+                               <div className="text-[10px] text-slate-500 font-mono mt-0.5 sm:hidden">{student.enrollment_no}</div>
                             </td>
-                            <td className="px-8 py-6 font-mono text-[13px] text-slate-500">{student.enrollment_no}</td>
-                            <td className="px-8 py-6">
+                            <td className="px-3 sm:px-8 py-4 sm:py-6 font-mono text-[13px] text-slate-500 hidden sm:table-cell">{student.enrollment_no}</td>
+                            <td className="px-3 sm:px-8 py-4 sm:py-6">
                                <div className="flex flex-col items-center">
                                   <span className={cn(
-                                    "text-lg font-black",
+                                    "text-base sm:text-lg font-black",
                                     student.attendance_percentage >= 75 ? "text-emerald-500" : 
                                     student.attendance_percentage >= 50 ? "text-amber-500" : "text-red-500"
                                   )}>
@@ -1219,7 +1223,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                   </div>
                                </div>
                             </td>
-                            <td className="px-8 py-6 text-right">
+                            <td className="px-3 sm:px-8 py-4 sm:py-6 text-right">
                                <div className="flex items-center justify-end gap-2">
                                   {(activeSession || selectedPastSession) && !attendance.find(a => a.student_id === student.id) && (
                                      <button 
@@ -1247,9 +1251,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                 {/* Password Reset Modal (Redesigned) */}
                 <AnimatePresence>
                   {resettingUserId && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setResettingUserId(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl" />
-                       <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm p-10">
+                       <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="relative bg-white rounded-2xl sm:rounded-[2.5rem] shadow-2xl w-full max-w-sm p-6 sm:p-10">
                           <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-8 shadow-xl shadow-indigo-200">
                              <Key className="w-8 h-8 text-white" />
                           </div>
@@ -1260,7 +1264,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                type="password" 
                                value={newPassword}
                                onChange={e => setNewPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                               className="w-full text-center text-3xl font-black tracking-[0.5em] py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-2xl outline-none"
+                               className="w-full text-center text-2xl sm:text-3xl font-black tracking-[0.3em] sm:tracking-[0.5em] py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-2xl outline-none"
                                placeholder="******"
                                maxLength={6}
                              />

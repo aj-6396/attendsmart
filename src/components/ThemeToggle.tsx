@@ -16,9 +16,8 @@ export default function ThemeToggle({ darkMode, toggleDarkMode, className }: The
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
       className={cn(
-        "relative p-2 rounded-xl transition-all duration-300",
-        "bg-white/10 dark:bg-black/20 border border-white/10 dark:border-[#39ff14]/20",
-        "hover:shadow-[0_0_15px_rgba(57,255,20,0.2)] dark:hover:shadow-[0_0_20px_rgba(57,255,20,0.4)]",
+        "relative p-2 rounded-lg transition-all duration-200",
+        "bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200",
         className
       )}
       title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}

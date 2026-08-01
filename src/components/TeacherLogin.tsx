@@ -33,12 +33,12 @@ export default function TeacherLogin({
   return (
     <div className="w-full max-w-md sm:max-w-lg flex flex-col gap-4">
       {/* Top Bar with Logo and App Name */}
-      <div className="glass-card p-4 flex items-center gap-3 border border-[--color-glass-border] bg-white/10 shadow-xl">
-        <div className="icon-box--sm icon-box--primary">
-          <ShieldCheck className="w-4 h-4 text-white" />
+      <div className="p-3.5 flex items-center gap-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+        <div className="w-8 h-8 rounded-lg bg-[#002147] dark:bg-blue-600 flex items-center justify-center text-white">
+          <ShieldCheck className="w-4 h-4" />
         </div>
-        <span className="text-lg sm:text-xl font-bold text-[--color-primary] dark:text-white tracking-tight">
-          Class Mark
+        <span className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+          ClassMark
         </span>
       </div>
 
@@ -49,7 +49,7 @@ export default function TeacherLogin({
         className="glass-card"
       >
         {/* Header with back button */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-5 sm:mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[--color-text-primary]">Welcome Back</h1>
           <p className="text-[--color-text-secondary] text-sm mt-1">Teacher Login</p>
@@ -143,7 +143,7 @@ export default function TeacherLogin({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[--color-text-secondary] hover:text-[--color-accent] transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[--color-text-secondary] hover:text-[--color-accent] transition-colors p-1"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
