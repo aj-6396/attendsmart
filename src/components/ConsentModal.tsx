@@ -139,7 +139,7 @@ export default function ConsentModal({ onAccept }: ConsentModalProps) {
           </div>
 
           <p className="text-center text-[11px] text-slate-400">
-            Developed by Ambuj Singh
+            Developed by <a href="https://aj-7portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 transition-colors underline decoration-dotted underline-offset-2">Ambuj Singh</a>
           </p>
         </div>
       </motion.div>
@@ -153,7 +153,7 @@ function PrivacyContent() {
   return (
     <>
       <h3 className="text-sm font-bold text-slate-900">Privacy Policy</h3>
-      <p className="text-[11px] text-slate-400">Effective: April 16, 2026 · Developers: Ambuj Singh</p>
+      <p className="text-[11px] text-slate-400">Effective: April 16, 2026 · Developer: <a href="https://aj-7portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 transition-colors underline decoration-dotted underline-offset-2">Ambuj Singh</a></p>
 
       <Section title="What We Collect">
         <ul className="list-disc pl-4 space-y-1">

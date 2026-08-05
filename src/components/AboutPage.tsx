@@ -73,7 +73,14 @@ export default function AboutPage({ onBack }: AboutPageProps) {
                     AS
                   </div>
                   <div>
-                    <h3 className="font-bold text-[--color-text-primary] text-lg">Ambuj Singh</h3>
+                    <h3 className="font-bold text-[--color-text-primary] text-lg">
+                      <a href="https://aj-7portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-[--color-primary] transition-colors flex items-center gap-1.5 group/link">
+                        Ambuj Singh
+                        <svg className="w-4 h-4 opacity-0 -ml-2 group-hover/link:opacity-100 group-hover/link:translate-x-2 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </h3>
                     <p className="text-xs text-[--color-primary] font-medium uppercase tracking-wider">Founder & Developer</p>
                   </div>
                 </div>
@@ -85,7 +92,7 @@ export default function AboutPage({ onBack }: AboutPageProps) {
           </section>
           
           <div className="text-center mt-8 pt-6 border-t border-[--color-glass-border]/50 text-xs text-[--color-text-secondary]">
-            <p>ClassMark © 2026 Ambuj Singh. All Rights Reserved.</p>
+            <p>ClassMark © 2026 <a href="https://aj-7portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-[--color-primary] transition-colors underline decoration-dotted underline-offset-2">Ambuj Singh</a>. All Rights Reserved.</p>
           </div>
         </div>
       </div>
