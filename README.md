@@ -76,4 +76,6 @@ npm run dev
 - **Password**: 6-digit numeric PIN only.
 
 ---
+---
 **Class Mark** - Built for Integrity.
+Developed by [Ambuj Singh](https://aj-7portfolio.vercel.app/)
