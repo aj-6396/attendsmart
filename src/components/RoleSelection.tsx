@@ -1,15 +1,16 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { GraduationCap, BookOpen, ShieldCheck } from 'lucide-react';
+import { GraduationCap, BookOpen, ShieldCheck, Info } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 interface RoleSelectionProps {
   onSelectRole: (role: 'student' | 'teacher' | 'admin') => void;
+  onShowAbout: () => void;
   darkMode: boolean;
   toggleDarkMode: () => void;
 }
 
-export default function RoleSelection({ onSelectRole, darkMode, toggleDarkMode }: RoleSelectionProps) {
+export default function RoleSelection({ onSelectRole, onShowAbout, darkMode, toggleDarkMode }: RoleSelectionProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6">
       <div className="w-full max-w-2xl mb-6 sm:mb-8 p-3 sm:p-4 flex items-center justify-between border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm mx-2 sm:mx-0">
@@ -21,7 +22,16 @@ export default function RoleSelection({ onSelectRole, darkMode, toggleDarkMode }
             ClassMark
           </span>
         </div>
-        <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={onShowAbout}
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-[--color-primary] dark:text-slate-300 dark:hover:text-[--color-primary] transition-colors bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg"
+          >
+            <Info className="w-4 h-4" />
+            <span className="hidden sm:inline">About App</span>
+          </button>
+          <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        </div>
       </div>
 
       {/* Title Section */}

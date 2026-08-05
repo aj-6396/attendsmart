@@ -1,8 +1,8 @@
 {
   "name": "classmark",
-  "author": "Ambuj Singh & Aniket Verma",
+  "author": "Ambuj Singh",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "Proprietary",
   "type": "module",
   "scripts": {

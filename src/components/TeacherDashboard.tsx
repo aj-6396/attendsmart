@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * Copyright © 2026 Ambuj Singh. All Rights Reserved.
  * This code is proprietary and confidential. Unauthorized copying, 
  * distribution, or use is strictly prohibited.
  */
@@ -233,10 +233,32 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       if (!enrollmentData || !sessions) throw new Error('No data found for export');
 
       // Create CSV
-      const sessionDates = sessions.map(s => format(new Date(s.created_at), 'MMM dd HH:mm'));
+      const sessionDates = sessions.map(s => format(new Date(s.created_at), 'yyyy-MM-dd'));
       const headers = ['Student Name', 'Enrollment No', 'Exam Roll No', ...sessionDates, 'Total Present', '%'];
       
-      const rows = enrollmentData.map((e: any) => {
+      // Sort students by Examination Roll Number in ascending order
+      const sortedEnrollmentData = [...enrollmentData].sort((a: any, b: any) => {
+        const studentA = Array.isArray(a.users) ? a.users[0] : a.users;
+        const profileA = Array.isArray(studentA?.student_profiles) 
+          ? studentA?.student_profiles[0] 
+          : studentA?.student_profiles;
+
+        const studentB = Array.isArray(b.users) ? b.users[0] : b.users;
+        const profileB = Array.isArray(studentB?.student_profiles) 
+          ? studentB?.student_profiles[0] 
+          : studentB?.student_profiles;
+
+        const rollA = (profileA?.exam_roll_no ?? '').trim();
+        const rollB = (profileB?.exam_roll_no ?? '').trim();
+
+        if (!rollA && !rollB) return 0;
+        if (!rollA) return 1;
+        if (!rollB) return -1;
+
+        return rollA.localeCompare(rollB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
+      const rows = sortedEnrollmentData.map((e: any) => {
         const student = Array.isArray(e.users) ? e.users[0] : e.users;
         const profile = Array.isArray(student?.student_profiles) 
           ? student?.student_profiles[0] 
@@ -325,14 +347,36 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       
       doc.setFontSize(10);
       doc.setTextColor(100, 116, 139); // slate-500
-      doc.text(`Generated on: ${format(new Date(), 'PPPP p')}`, 14, 34);
+      doc.text(`Generated on: ${format(new Date(), 'PPPP')}`, 14, 34);
       doc.text(`Join Code: ${activeClass.join_code}`, 14, 38);
 
       // Table Generation
-      const sessionDates = sessions.map(s => format(new Date(s.created_at), 'MMM dd\nHH:mm'));
+      const sessionDates = sessions.map(s => format(new Date(s.created_at), 'yyyy-MM-dd'));
       const head = [['S.No', 'Student Information', 'Enrollment', 'Roll No', ...sessionDates, 'Score']];
       
-      const body = enrollmentData.map((e: any, index: number) => {
+      // Sort students by Examination Roll Number in ascending order
+      const sortedPdfEnrollmentData = [...enrollmentData].sort((a: any, b: any) => {
+        const studentA = Array.isArray(a.users) ? a.users[0] : a.users;
+        const profileA = Array.isArray(studentA?.student_profiles) 
+          ? studentA?.student_profiles[0] 
+          : studentA?.student_profiles;
+
+        const studentB = Array.isArray(b.users) ? b.users[0] : b.users;
+        const profileB = Array.isArray(studentB?.student_profiles) 
+          ? studentB?.student_profiles[0] 
+          : studentB?.student_profiles;
+
+        const rollA = (profileA?.exam_roll_no ?? '').trim();
+        const rollB = (profileB?.exam_roll_no ?? '').trim();
+
+        if (!rollA && !rollB) return 0;
+        if (!rollA) return 1;
+        if (!rollB) return -1;
+
+        return rollA.localeCompare(rollB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
+      const body = sortedPdfEnrollmentData.map((e: any, index: number) => {
         const student = Array.isArray(e.users) ? e.users[0] : e.users;
         const profile = Array.isArray(student?.student_profiles) 
           ? student?.student_profiles[0] 
@@ -687,9 +731,25 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   const exportAttendance = async () => {
     if (attendance.length === 0) return;
     try {
+      const sortedAttendance = [...attendance].sort((a: any, b: any) => {
+        const profileAData = a.users?.student_profiles;
+        const profileA = Array.isArray(profileAData) ? profileAData[0] : profileAData;
+        const profileBData = b.users?.student_profiles;
+        const profileB = Array.isArray(profileBData) ? profileBData[0] : profileBData;
+
+        const rollA = (profileA?.exam_roll_no ?? '').trim();
+        const rollB = (profileB?.exam_roll_no ?? '').trim();
+
+        if (!rollA && !rollB) return 0;
+        if (!rollA) return 1;
+        if (!rollB) return -1;
+
+        return rollA.localeCompare(rollB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
       const csvContent = [
         ['Student Name', 'Enrollment No', 'Exam Roll No', 'Timestamp'],
-        ...attendance.map(a => {
+        ...sortedAttendance.map(a => {
           const studentProfileData = a.users.student_profiles;
           const studentProfile = Array.isArray(studentProfileData) ? studentProfileData[0] : studentProfileData;
           return [

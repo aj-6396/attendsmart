@@ -139,7 +139,7 @@ export default function ConsentModal({ onAccept }: ConsentModalProps) {
           </div>
 
           <p className="text-center text-[11px] text-slate-400">
-            Developed by Ambuj Singh & Aniket Verma
+            Developed by Ambuj Singh
           </p>
         </div>
       </motion.div>
@@ -153,7 +153,7 @@ function PrivacyContent() {
   return (
     <>
       <h3 className="text-sm font-bold text-slate-900">Privacy Policy</h3>
-      <p className="text-[11px] text-slate-400">Effective: April 16, 2026 · Developers: Ambuj Singh & Aniket Verma</p>
+      <p className="text-[11px] text-slate-400">Effective: April 16, 2026 · Developers: Ambuj Singh</p>
 
       <Section title="What We Collect">
         <ul className="list-disc pl-4 space-y-1">

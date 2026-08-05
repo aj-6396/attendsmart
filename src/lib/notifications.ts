@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * Copyright © 2026 Ambuj Singh. All Rights Reserved.
  * ClassMark Notification System (Android Local Notifications & In-App Toast Banners)
  */
 

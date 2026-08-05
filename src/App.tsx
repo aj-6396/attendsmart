@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 Ambuj Singh & Aniket Verma. All Rights Reserved.
+ * Copyright © 2026 Ambuj Singh. All Rights Reserved.
  * This code is proprietary and confidential. Unauthorized copying, 
  * distribution, or use is strictly prohibited.
  */
@@ -19,6 +19,7 @@ import StudentLogin from './components/StudentLogin';
 import TeacherLogin from './components/TeacherLogin';
 import ConsentModal from './components/ConsentModal';
 import ThemeToggle from './components/ThemeToggle';
+import AboutPage from './components/AboutPage';
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/react"
 
@@ -58,6 +59,7 @@ export default function App() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [loginType, setLoginType] = useState<UserRole>('student');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showAbout, setShowAbout] = useState(false);
 
   // Global Theme State
   const [darkMode, setDarkMode] = useState(() => {
@@ -419,8 +421,13 @@ export default function App() {
             </div>
           )}
 
+          {/* About Screen */}
+          {!loading && showAbout && (
+            <AboutPage onBack={() => setShowAbout(false)} />
+          )}
+
           {/* Role Selection Screen */}
-          {!loading && !selectedRole && <RoleSelection
+          {!loading && !selectedRole && !showAbout && <RoleSelection
             onSelectRole={(role) => {
               setSelectedRole(role);
               setLoginType(role);
@@ -428,6 +435,7 @@ export default function App() {
               setError(null);
               setMessage(null);
             }}
+            onShowAbout={() => setShowAbout(true)}
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
           />}
@@ -802,6 +810,8 @@ export default function App() {
             )}
           </Suspense>
         </main>
+        <Analytics />
+        <SpeedInsights />
       </div>
     </>
   );
