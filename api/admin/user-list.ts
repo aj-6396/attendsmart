@@ -1,13 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { getAuthenticatedUser } from "../lib/auth.js";
-
-function getSupabase() {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-  if (!url || !key) return null;
-  return createClient(url, key);
-}
+import { getAuthenticatedUser, getSupabase } from "../lib/auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

@@ -19,9 +19,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. Add Security Column for Device Locking
+-- 2. Add Security Column for Device Locking & Manual Attendance Overrides
 ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS device_id TEXT;
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS device_id TEXT;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS manual BOOLEAN DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS idx_attendance_records_device_id ON attendance_records(device_id);
 
 -- 3. Clear old test data (ONLY Attendance, NOT Users)
@@ -81,7 +82,9 @@ CREATE POLICY "Classes managed by related creators" ON classes FOR DELETE USING 
 -- Class Teachers:
 DROP POLICY IF EXISTS "Class teachers viewable by related" ON class_teachers;
 DROP POLICY IF EXISTS "Class teachers viewable by all" ON class_teachers;
-CREATE POLICY "Class teachers viewable by all" ON class_teachers FOR SELECT USING (true);
+CREATE POLICY "Class teachers viewable by all" ON class_teachers FOR SELECT USING (
+  auth.role() = 'authenticated'
+);
 
 DROP POLICY IF EXISTS "Class teachers managed by creators" ON class_teachers;
 DROP POLICY IF EXISTS "Class teachers managed by creators - insert" ON class_teachers;
@@ -100,7 +103,9 @@ CREATE POLICY "Class teachers managed by creators - delete" ON class_teachers FO
 
 -- Class Enrollments:
 DROP POLICY IF EXISTS "Enrollments viewable by specific" ON class_enrollments;
-CREATE POLICY "Enrollments viewable by specific" ON class_enrollments FOR SELECT USING (true);
+CREATE POLICY "Enrollments viewable by specific" ON class_enrollments FOR SELECT USING (
+  auth.role() = 'authenticated'
+);
 
 DROP POLICY IF EXISTS "Students can enroll themselves" ON class_enrollments;
 CREATE POLICY "Students can enroll themselves" ON class_enrollments FOR INSERT WITH CHECK (
