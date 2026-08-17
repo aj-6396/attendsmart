@@ -692,7 +692,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
                   strokeDashoffset={0}
                   className="transition-all duration-1000 ease-out"
                   style={{
-                    strokeDasharray: `${stats.total > 0 ? (364.4 * (stats.total - stats.attended)) / stats.total : 0} 364.4`
+                    strokeDasharray: `${(364.4 * (stats.total - stats.attended)) / stats.total} 364.4`
                   }}
                 />
                 {/* Green segment for present */}
@@ -706,8 +706,8 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
                   strokeDasharray={364.4}
                   className="transition-all duration-1000 ease-out"
                   style={{
-                    strokeDasharray: `${stats.total > 0 ? (364.4 * stats.attended) / stats.total : 0} 364.4`,
-                    strokeDashoffset: `-${stats.total > 0 ? (364.4 * (stats.total - stats.attended)) / stats.total : 0}`
+                    strokeDasharray: `${(364.4 * stats.attended) / stats.total} 364.4`,
+                    strokeDashoffset: `-${(364.4 * (stats.total - stats.attended)) / stats.total}`
                   }}
                 />
               </svg>

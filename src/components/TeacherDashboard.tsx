@@ -1108,11 +1108,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                       <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-widest rounded-md">Manual</span>
                                     )}
                                   </td>
-                                  <td className="py-4 text-slate-500 font-mono text-xs">
-                                    {Array.isArray(record.users?.student_profiles)
-                                      ? record.users.student_profiles[0]?.enrollment_no
-                                      : (record.users?.student_profiles as any)?.enrollment_no || 'N/A'}
-                                  </td>
+                                  <td className="py-4 text-slate-500 font-mono text-xs">{(record.users.student_profiles as any)?.[0]?.enrollment_no}</td>
                                   <td className="py-4 text-right text-slate-400 text-xs font-mono">{format(new Date(record.created_at), 'HH:mm:ss')}</td>
                                 </tr>
                               ))}

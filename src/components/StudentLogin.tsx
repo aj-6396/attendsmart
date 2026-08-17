@@ -116,7 +116,7 @@ export default function StudentLogin({
             value={enrollmentNo}
             onChange={(e) => setEnrollmentNo(e.target.value)}
             className="field-input"
-            placeholder="e.g. 123456"
+            placeholder="e.g. EN123456"
             required
           />
           <p className="text-xs text-[--color-text-secondary] mt-2">

@@ -5,7 +5,7 @@ import { Download, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 // GitHub repository name for release updates
-const GITHUB_REPO = 'aj-6396/classmark';
+const GITHUB_REPO = 'aj-6396/attendsmart';
 
 interface ReleaseInfo {
   version: string;

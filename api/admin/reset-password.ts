@@ -1,8 +1,12 @@
-import { getAuthenticatedUser, getSupabase } from '../lib/auth.js';
+import { createClient } from "@supabase/supabase-js";
+import { getAuthenticatedUser } from '../lib/auth.js';
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabase = supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-  const supabase = getSupabase();
   if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
 
   try {
