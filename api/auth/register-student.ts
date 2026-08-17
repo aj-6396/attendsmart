@@ -1,15 +1,15 @@
 // api/auth/register-student.ts
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase (Vercel will read these from your Environment Variables)
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { getSupabase } from "../lib/auth.js";
 
 export default async function handler(req: any, res: any) {
   // 1. Ensure it only accepts POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
+  }
+
+  const supabase = getSupabase();
+  if (!supabase) {
+    return res.status(500).json({ error: "Database configuration missing on server." });
   }
 
   try {
@@ -30,7 +30,6 @@ export default async function handler(req: any, res: any) {
     const trimmedEnrollment = enrollmentNo.trim();
     const trimmedExamRoll = examRollNo?.trim().toUpperCase();
     const email = trimmedEnrollment.includes('@') ? trimmedEnrollment.toLowerCase() : `${trimmedEnrollment.toLowerCase()}@college.com`;
-    const isOwner = email === 'ambuj02103@gmail.com';
 
     // Validate inputs
     if (!/^\d{6}$/.test(trimmedEnrollment)) return res.status(400).json({ error: "Enrollment Number must be exactly 6 digits" });
@@ -42,7 +41,7 @@ export default async function handler(req: any, res: any) {
       email,
       password,
       email_confirm: true,
-      user_metadata: { role: isOwner ? 'admin' : 'student' }
+      user_metadata: { role: 'student' }
     });
 
     if (authError) return res.status(500).json({ error: authError.message });
@@ -52,7 +51,7 @@ export default async function handler(req: any, res: any) {
     const { error: userError } = await supabase.from('users').insert({
       id: authData.user.id,
       name: fullName.trim().slice(0, 100),
-      role: isOwner ? 'admin' : 'student',
+      role: 'student',
     });
 
     if (userError) {
@@ -61,24 +60,22 @@ export default async function handler(req: any, res: any) {
     }
 
     // Create Student Profile
-    if (!isOwner) {
-      const { error: profileError } = await supabase.from('student_profiles').insert({
-        id: authData.user.id,
-        enrollment_no: trimmedEnrollment,
-        exam_roll_no: trimmedExamRoll,
-        course: course.trim().slice(0, 50),
-        semester: semester.trim().slice(0, 10),
-        major_subject: majorSubject.trim().slice(0, 50),
-        batch: batch.trim().slice(0, 20),
-        section: section.trim().slice(0, 10),
-        device_id: deviceId || null,
-      });
+    const { error: profileError } = await supabase.from('student_profiles').insert({
+      id: authData.user.id,
+      enrollment_no: trimmedEnrollment,
+      exam_roll_no: trimmedExamRoll,
+      course: course.trim().slice(0, 50),
+      semester: semester.trim().slice(0, 10),
+      major_subject: majorSubject.trim().slice(0, 50),
+      batch: batch.trim().slice(0, 20),
+      section: section.trim().slice(0, 10),
+      device_id: deviceId || null,
+    });
 
-      if (profileError) {
-        await supabase.from('users').delete().eq('id', authData.user.id);
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        return res.status(500).json({ error: profileError.message });
-      }
+    if (profileError) {
+      await supabase.from('users').delete().eq('id', authData.user.id);
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      return res.status(500).json({ error: profileError.message });
     }
 
     // Success!
