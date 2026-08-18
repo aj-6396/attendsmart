@@ -1,42 +1,58 @@
 import React, { useState, useEffect } from 'react';
-import { authFetch } from '../lib/authFetch';
 import { supabase } from '../supabase';
+import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  UserPlus, Users, ShieldCheck, Loader2, AlertCircle, CheckCircle2, 
-  Key, Search, X, BarChart3, TrendingUp, Calendar, 
-  ArrowUpRight, ArrowDownRight, Folder, Trash2, 
-  RefreshCw, LayoutDashboard, UserCog, GraduationCap, Download, LogOut, Smartphone
+  Users, 
+  GraduationCap, 
+  Folder, 
+  UserPlus, 
+  Trash2, 
+  Smartphone, 
+  Key, 
+  Download, 
+  Search, 
+  Plus, 
+  RefreshCw, 
+  LogOut, 
+  CheckCircle2, 
+  AlertCircle, 
+  X,
+  FileText,
+  Loader2,
+  TrendingDown,
+  Clock,
+  ShieldCheck
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
-import ThemeToggle from './ThemeToggle';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ThemeToggle from './ThemeToggle';
 import { downloadFile } from '../lib/fileDownload';
+import { useBackButton } from '../lib/backButton';
 
 type ActiveTab = 'overview' | 'teachers' | 'students' | 'classes';
 
-export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMode }: { user: any; profile: any; onLogout: () => void; darkMode: boolean; toggleDarkMode: () => void }) {
+export default function AdminDashboard({ user, profile, onLogout, darkMode, toggleDarkMode }: { user: any; profile: any; onLogout: () => void; darkMode: boolean; toggleDarkMode: () => void }) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Data State
+  
+  // Data States
   const [stats, setStats] = useState<any>(null);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [lowAttendanceStudents, setLowAttendanceStudents] = useState<any[]>([]);
   
-  // Search/Filters
+  // Search & Pagination
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 10;
-  
+  const pageSize = 15;
+
   // Modals/Forms
   const [showCreateTeacher, setShowCreateTeacher] = useState(false);
   const [teacherName, setTeacherName] = useState('');
@@ -47,212 +63,199 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
 
-  // Export System Report as PDF
-  const exportSystemReportPDF = async () => {
+  // Android Back Button Navigation
+  useBackButton(() => {
+    if (resettingUserId !== null) {
+      setResettingUserId(null);
+      setNewPassword('');
+      return true;
+    }
+    return false;
+  }, resettingUserId !== null, 60);
+
+  useBackButton(() => {
+    if (showCreateTeacher) {
+      setShowCreateTeacher(false);
+      return true;
+    }
+    return false;
+  }, showCreateTeacher, 50);
+
+  useBackButton(() => {
+    if (activeTab !== 'overview') {
+      setActiveTab('overview');
+      setSearchQuery('');
+      setPage(0);
+      return true;
+    }
+    return false;
+  }, activeTab !== 'overview' && !showCreateTeacher && resettingUserId === null, 30);
+
+  // Export Executive PDF Report
+  const exportExecutivePDF = async () => {
+    if (!stats) return;
     try {
       setLoading(true);
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
+      // Title & Header
       doc.setFontSize(22);
-      doc.setTextColor(79, 70, 229);
-      doc.text('ClassMark - System Admin Report', 14, 20);
+      doc.setTextColor(0, 33, 71);
+      doc.text('Institutional Attendance Audit', 14, 20);
 
       doc.setFontSize(10);
       doc.setTextColor(100, 116, 139);
-      doc.text(`Generated on: ${format(new Date(), 'PPPP p')}`, 14, 27);
+      doc.text(`Generated on: ${format(new Date(), 'PPPP')}`, 14, 28);
+      doc.text(`Authorized by: System Administration`, 14, 33);
 
       // Summary Table
-      const summaryHead = [['Metric', 'Total Count']];
-      const summaryBody = [
-        ['Total Registered Students', stats?.students || 0],
-        ['Total Faculty Teachers', stats?.teachers || 0],
-        ['Active Classes', stats?.classes || 0],
-        ['Total Attendance Sessions', stats?.sessions || 0],
-        ['Critical Students (<75% Attendance)', lowAttendanceStudents.length],
-      ];
-
       autoTable(doc, {
-        head: summaryHead,
-        body: summaryBody,
-        startY: 33,
-        theme: 'striped',
-        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
+        startY: 40,
+        head: [['Metric', 'Institutional Value', 'Status / Target']],
+        body: [
+          ['Total Teaching Faculty', `${stats.total_teachers}`, 'Active'],
+          ['Total Enrolled Students', `${stats.total_students}`, 'Active'],
+          ['Active Academic Classes', `${stats.total_classes}`, 'Operational'],
+          ['Overall Institution Attendance', `${stats.avg_attendance_rate}%`, stats.avg_attendance_rate >= 75 ? 'Meets UGC / Mandatory Standard' : 'Requires Review (<75%)'],
+          ['Critical Short-Attendance Students', `${lowAttendanceStudents.length}`, lowAttendanceStudents.length > 0 ? 'Action Recommended' : 'Optimal']
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [0, 33, 71], textColor: [255, 255, 255], fontStyle: 'bold' }
       });
 
       // Critical Roster Table if any
+      const lastY = (doc as any).lastAutoTable.finalY + 10;
       if (lowAttendanceStudents.length > 0) {
-        const lastY = (doc as any).lastAutoTable.finalY + 10;
         doc.setFontSize(14);
-        doc.setTextColor(225, 29, 72);
+        doc.setTextColor(185, 28, 28);
         doc.text('Critical Attendance Roster (< 75%)', 14, lastY);
 
-        const criticalHead = [['S.No', 'Student Name', 'Attendance Rate']];
-        const criticalBody = lowAttendanceStudents.map((s, idx) => [
-          idx + 1,
-          s.name,
-          `${s.attendance_percentage}%`
-        ]);
-
         autoTable(doc, {
-          head: criticalHead,
-          body: criticalBody,
-          startY: lastY + 4,
-          theme: 'grid',
-          headStyles: { fillColor: [225, 29, 72], textColor: [255, 255, 255] },
+          startY: lastY + 5,
+          head: [['Student Name', 'Enrollment No', 'Attendance Rate']],
+          body: lowAttendanceStudents.map(s => [
+            s.name,
+            s.enrollment_no,
+            `${s.attendance_percentage}%`
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [185, 28, 28], textColor: [255, 255, 255] }
         });
       }
 
       const pdfBlob = doc.output('blob');
-      await downloadFile(`System_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`, pdfBlob, 'application/pdf');
-      setSuccess('System PDF Report downloaded successfully!');
+      await downloadFile(`ClassMark_Executive_Audit_${format(new Date(), 'yyyy-MM-dd')}.pdf`, pdfBlob, 'application/pdf');
+      setSuccess('Executive PDF Audit exported successfully!');
     } catch (err: any) {
-      console.error('System PDF export error:', err);
-      setError('Failed to export system PDF report.');
+      console.error('PDF Export Error:', err);
+      setError('Failed to generate PDF: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Export Current Tab (Teachers / Students / Classes) as CSV
+  // Export Current Tab as CSV
   const exportActiveTabCSV = async () => {
     try {
-      let csvData = '';
+      setLoading(true);
+      let csvContent = '';
       let filename = `ClassMark_${activeTab}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
 
       if (activeTab === 'teachers') {
-        const headers = ['Name', 'Email'];
-        const rows = teachers.map(t => [t.name, t.email]);
-        csvData = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        csvContent = [
+          ['Name', 'Email', 'Personnel ID', 'Joined Date'],
+          ...teachers.map(t => [t.name, t.email, t.teacher_profiles?.employee_id || 'N/A', format(new Date(t.created_at), 'yyyy-MM-dd')])
+        ].map(e => e.join(',')).join('\n');
       } else if (activeTab === 'students') {
-        const headers = ['Name', 'Enrollment No', 'Course', 'Semester'];
-        const rows = students.map(s => {
-          const prof = Array.isArray(s.student_profiles) ? s.student_profiles[0] : s.student_profiles;
-          return [s.name, prof?.enrollment_no || '', prof?.course || '', prof?.semester || ''];
-        });
-        csvData = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        csvContent = [
+          ['Name', 'Enrollment No', 'Exam Roll No', 'Course', 'Semester', 'Section', 'Batch'],
+          ...students.map(s => {
+            const prof = Array.isArray(s.student_profiles) ? s.student_profiles[0] : s.student_profiles;
+            return [
+              s.name,
+              prof?.enrollment_no || 'N/A',
+              prof?.exam_roll_no || 'N/A',
+              prof?.course || 'N/A',
+              prof?.semester || 'N/A',
+              prof?.section || 'N/A',
+              prof?.batch || 'N/A'
+            ];
+          })
+        ].map(e => e.join(',')).join('\n');
       } else if (activeTab === 'classes') {
-        const headers = ['Class Name', 'Join Code', 'Teacher Owner'];
-        const rows = classes.map(c => [c.name, c.join_code, c.users?.name || 'System']);
-        csvData = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        csvContent = [
+          ['Class Name', 'Join Code', 'Faculty Owner', 'Created Date'],
+          ...classes.map(c => [
+            c.name,
+            c.join_code,
+            c.users?.name || 'System',
+            format(new Date(c.created_at), 'yyyy-MM-dd')
+          ])
+        ].map(e => e.join(',')).join('\n');
       } else {
-        const rows = [
+        csvContent = [
           ['Metric', 'Value'],
-          ['Total Students', stats?.students || 0],
-          ['Total Teachers', stats?.teachers || 0],
-          ['Classes', stats?.classes || 0],
-          ['Sessions', stats?.sessions || 0]
-        ];
-        csvData = rows.map(r => r.join(',')).join('\n');
-        filename = `System_Overview_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+          ['Total Teachers', stats?.total_teachers || 0],
+          ['Total Students', stats?.total_students || 0],
+          ['Total Classes', stats?.total_classes || 0],
+          ['Avg Attendance Rate', `${stats?.avg_attendance_rate || 0}%`]
+        ].map(e => e.join(',')).join('\n');
+        filename = `ClassMark_Overview_${format(new Date(), 'yyyy-MM-dd')}.csv`;
       }
 
-      await downloadFile(filename, csvData, 'text/csv;charset=utf-8;');
+      await downloadFile(filename, csvContent, 'text/csv;charset=utf-8;');
       setSuccess(`${activeTab.toUpperCase()} CSV downloaded successfully!`);
     } catch (err: any) {
-      console.error('Export CSV error:', err);
-      setError('Failed to export CSV file.');
-    }
-  };
-
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
-    setLoading(true);
-    await Promise.all([
-      fetchStats(),
-      fetchTeachers(0, searchQuery),
-      fetchStudents(0, searchQuery),
-      fetchClasses()
-    ]);
-    setLoading(false);
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await authFetch(`/api/admin/stats`);
-      const text = await response.text();
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch (_parseErr) {
-        console.error('Stats API returned non-JSON:', text.substring(0, 200));
-        setError('Server returned an invalid response. Please try refreshing.');
-        return;
-      }
-      
-      if (!response.ok) throw new Error(data.error || 'Failed to fetch stats');
-
-      setStats({
-        students: data.counts.students,
-        teachers: data.counts.teachers,
-        classes: data.counts.classes,
-        sessions: data.counts.sessions,
-        trends: data.trends,
-        growth: data.growth,
-        totalWeeklyAttendance: data.totalWeeklyAttendance
-      });
-      setLowAttendanceStudents(data.criticalRoster || []);
-    } catch (err: any) {
-      console.error('Stats fetch error:', err);
-      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        setError('Network timeout or connection error. Please check your internet or retry.');
-      } else {
-        setError(err.message || 'Failed to load dashboard stats.');
-      }
-    }
-  };
-
-  const fetchTeachers = async (p = 0, q = '') => {
-    try {
-      setLoading(true);
-      const res = await authFetch(`/api/admin/user-list?role=teacher&page=${p}&pageSize=${pageSize}&searchQuery=${encodeURIComponent(q)}`);
-      const text = await res.text();
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch (_err) {
-        throw new Error('Invalid server response while loading teachers.');
-      }
-      
-      if (!res.ok) throw new Error(data.error || 'Failed to load teachers');
-      setTeachers(data.users);
-      if (activeTab === 'teachers') setTotalCount(data.total);
-    } catch (err: any) {
-      console.error('Fetch teachers error:', err);
-      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        setError('Connection timed out while loading teachers. Please retry.');
-      } else {
-        setError(err.message || 'Failed to load teachers.');
-      }
+      console.error('CSV Export Error:', err);
+      setError('Failed to export CSV: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStudents = async (p = 0, q = '') => {
+  const fetchOverview = async () => {
     try {
       setLoading(true);
-      const res = await authFetch(`/api/admin/user-list?role=student&page=${p}&pageSize=${pageSize}&searchQuery=${encodeURIComponent(q)}`);
-      const text = await res.text();
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch (_err) {
-        throw new Error('Invalid server response while loading students.');
-      }
-
-      if (!res.ok) throw new Error(data.error || 'Failed to load students');
-      setStudents(data.users);
-      if (activeTab === 'students') setTotalCount(data.total);
+      const res = await authFetch('/api/admin/metrics');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load metrics');
+      setStats(data.metrics);
+      setLowAttendanceStudents(data.lowAttendanceStudents || []);
     } catch (err: any) {
-      console.error('Fetch students error:', err);
-      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        setError('Connection timed out while loading students. Please retry.');
-      } else {
-        setError(err.message || 'Failed to load students.');
-      }
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTeachers = async (pageIndex = 0, query = '') => {
+    try {
+      setLoading(true);
+      const res = await authFetch(`/api/admin/teachers?page=${pageIndex}&pageSize=${pageSize}&search=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load teachers');
+      setTeachers(data.teachers || []);
+      setTotalCount(data.total || 0);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStudents = async (pageIndex = 0, query = '') => {
+    try {
+      setLoading(true);
+      const res = await authFetch(`/api/admin/students?page=${pageIndex}&pageSize=${pageSize}&search=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load students');
+      setStudents(data.students || []);
+      setTotalCount(data.total || 0);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -260,120 +263,127 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
 
   const fetchClasses = async () => {
     try {
-      const res = await authFetch(`/api/admin/class-list`);
-      const text = await res.text();
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch (_err) {
-        throw new Error('Invalid server response while loading classes.');
-      }
-
-      if (!res.ok) throw new Error(data.error || 'Failed to load classes');
-      setClasses(data.classes || []);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*, users:created_by(name)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setClasses(data || []);
     } catch (err: any) {
-      console.error('Fetch classes error:', err);
-      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        setError('Connection timed out while loading classes. Please retry.');
-      } else {
-        setError(err.message || 'Failed to load classes.');
-      }
-    }
-  };
-
-  const handleCreateTeacher = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      const response = await authFetch('/api/admin/create-teacher', {
-        method: 'POST',
-        body: JSON.stringify({
-          teacherName,
-          teacherEmail,
-          teacherPassword,
-          teacherEnrollmentNo: teacherId
-        })
-      });
-
-      if (response.status === 404) {
-        throw new Error("Backend API not found. Please run with 'vercel dev' to enable server features.");
-      }
-
-      const data = await response.json().catch(() => ({ error: "Server returned an invalid response." }));
-      if (!response.ok) throw new Error(data.error || "Failed to create teacher account.");
-      
-      setSuccess(`Teacher ${teacherName} created successfully!`);
-      setShowCreateTeacher(false);
-      resetTeacherForm();
-      fetchTeachers(page, searchQuery);
-    } catch (err: any) {
-      console.error("Admin Error:", err);
-      setError(err.message || "A connection error occurred.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetTeacherForm = () => {
-    setTeacherName('');
-    setTeacherEmail('');
-    setTeacherPassword('');
-    setTeacherId('');
-  };
-
-  const deleteClass = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this class? All attendance data will be lost.')) return;
-    const { error } = await supabase.from('classes').delete().eq('id', id);
-    if (error) setError(error.message);
-    else {
-      setSuccess('Class deleted successfully');
-      fetchClasses();
-    }
-  };
-
-  const handleResetPassword = async (userId: string) => {
-    if (!/^\d{6}$/.test(newPassword)) return setError('PIN must be 6 digits');
-    setLoading(true);
-    try {
-      const response = await authFetch('/api/admin/reset-password', {
-        method: 'POST',
-        body: JSON.stringify({
-          targetUserId: userId,
-          newPassword
-        })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      
-      setSuccess('Password reset successfully');
-      setResettingUserId(null);
-      setNewPassword('');
-    } catch (err: any) {
+      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResetDevice = async (studentId: string) => {
-    if (!confirm('Are you sure you want to reset this student\'s device link? They will be able to register a new device on their next login.')) return;
-    setLoading(true);
+  const handleCreateTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!teacherName || !teacherEmail || !teacherPassword || !teacherId) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    if (!/^\d{6}$/.test(teacherPassword)) {
+      setError('Password must be exactly 6 digits.');
+      return;
+    }
+
     try {
-      const response = await authFetch('/api/admin/reset-device', {
+      setLoading(true);
+      setError(null);
+      const res = await authFetch('/api/admin/create-teacher', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          targetUserId: studentId
+          name: teacherName.trim(),
+          email: teacherEmail.trim(),
+          password: teacherPassword,
+          employeeId: teacherId.trim()
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to reset device');
-      
-      setSuccess('Device link reset successfully. Student can now register a new device.');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create teacher');
+
+      setSuccess('Faculty member created successfully!');
+      setShowCreateTeacher(false);
+      setTeacherName('');
+      setTeacherEmail('');
+      setTeacherPassword('');
+      setTeacherId('');
+      fetchTeachers(0);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (userId: string) => {
+    if (!/^\d{6}$/.test(newPassword)) {
+      setError('PIN must be exactly 6 digits.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await authFetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId: userId,
+          newPassword
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset PIN');
+
+      setSuccess('PIN reset successfully!');
+      setResettingUserId(null);
+      setNewPassword('');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetDevice = async (userId: string) => {
+    if (!confirm('Are you sure you want to reset this student\'s device link?')) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await authFetch('/api/admin/reset-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: userId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset device link');
+
+      setSuccess('Device link reset successfully!');
       if (activeTab === 'students') fetchStudents(page, searchQuery);
     } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteClass = async (classId: string) => {
+    if (!confirm('Are you sure you want to delete this class? All attendance records will be removed.')) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase.from('classes').delete().eq('id', classId);
+      if (error) throw error;
+      setSuccess('Class deleted successfully.');
+      fetchClasses();
+    } catch (err: any) {
+      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -381,53 +391,51 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   };
 
   useEffect(() => {
+    if (activeTab === 'overview') fetchOverview();
     if (activeTab === 'teachers') fetchTeachers(page, searchQuery);
     if (activeTab === 'students') fetchStudents(page, searchQuery);
     if (activeTab === 'classes') fetchClasses();
   }, [activeTab, page]);
 
   useEffect(() => {
-    setPage(0);
-    const timer = setTimeout(() => {
+    const delayDebounce = setTimeout(() => {
       if (activeTab === 'teachers') fetchTeachers(0, searchQuery);
       if (activeTab === 'students') fetchStudents(0, searchQuery);
-    }, 500);
-    return () => clearTimeout(timer);
+    }, 300);
+    return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
 
-  const filteredItems = () => {
-    if (activeTab === 'classes') {
-      const q = searchQuery.toLowerCase();
-      return classes.filter(c => c.name.toLowerCase().includes(q) || c.join_code.toLowerCase().includes(q));
-    }
-    return activeTab === 'teachers' ? teachers : students;
-  };
+  const activeItems = activeTab === 'classes' ? classes : (activeTab === 'teachers' ? teachers : students);
 
   return (
-    <div className="space-y-8 page-container">
-      {/* Global Status Popups */}
+    <div className="space-y-6 sm:space-y-8">
+      {/* Global Alerts */}
       <AnimatePresence>
         {(error || success) && (
           <motion.div 
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed top-24 right-6 z-[500] w-full max-w-sm"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-3 right-3 left-3 sm:left-auto sm:right-6 sm:max-w-md z-[100] safe-area-pt pointer-events-auto"
           >
             {error && (
-              <div className="alert alert--error shadow-2xl backdrop-blur-md border-l-4 border-red-500">
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <p className="text-sm font-bold">{error}</p>
-                <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-100 rounded">
+              <div className="alert alert--error shadow-2xl flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm truncate">{error}</p>
+                </div>
+                <button onClick={() => setError(null)} className="p-1 touch-target">
                   <X className="w-4 h-4" />
                 </button>
               </div>
             )}
             {success && (
-              <div className="glass-card--success border-l-4 p-4 flex items-center gap-3 shadow-2xl">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <p className="text-sm font-bold text-emerald-800">{success}</p>
-                <button onClick={() => setSuccess(null)} className="ml-auto p-1 hover:bg-emerald-100 rounded">
+              <div className="alert alert--success shadow-2xl flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm truncate">{success}</p>
+                </div>
+                <button onClick={() => setSuccess(null)} className="p-1 touch-target">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -436,291 +444,397 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-200">
-              <ShieldCheck className="w-7 h-7 text-white" />
-            </div>
-            Admin Command Center
-          </h1>
-          <p className="text-slate-500 font-medium mt-1">System-wide monitoring & resource management</p>
-        </div>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3">
-           <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-           <button onClick={fetchInitialData} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all text-slate-500 hover:text-indigo-600 shadow-sm">
-              <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
-           </button>
-           <button onClick={exportSystemReportPDF} className="btn-gradient px-6 py-3 flex items-center gap-2 shadow-xl shadow-indigo-100">
-              <Download className="w-5 h-5" />
-              System Report (PDF)
-           </button>
-           <button onClick={exportActiveTabCSV} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all text-slate-500 hover:text-indigo-600 shadow-sm" title="Export CSV">
-              <Folder className="w-5 h-5" />
-           </button>
-           <button onClick={onLogout} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm" title="Logout">
-              <LogOut className="w-5 h-5" />
-           </button>
+          <div className="w-10 h-10 rounded-xl bg-[#002147] dark:bg-blue-600 flex items-center justify-center text-white shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Institutional Admin</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">ClassMark Control & Audit Console</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+          <button 
+            onClick={exportExecutivePDF} 
+            className="btn-outlined text-xs font-bold flex items-center gap-1.5 px-3 py-2"
+            title="Export Institutional PDF"
+          >
+            <FileText className="w-4 h-4" />
+            <span className="hidden xs:inline">Audit PDF</span>
+          </button>
+          <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+          <button 
+            onClick={onLogout}
+            className="p-2.5 bg-slate-100 dark:bg-slate-700/60 rounded-xl hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 text-slate-600 dark:text-slate-300 transition-colors touch-target"
+            title="Logout"
+            aria-label="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
-      <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
+      {/* Scrollable Tab Navigation Pills */}
+      <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl touch-scroll">
         {[
-          { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-          { id: 'teachers', label: 'Teachers', icon: UserCog },
+          { id: 'overview', label: 'Overview', icon: Clock },
+          { id: 'teachers', label: 'Faculty', icon: Users },
           { id: 'students', label: 'Students', icon: GraduationCap },
-          { id: 'classes', label: 'Classes', icon: Folder },
+          { id: 'classes', label: 'Classes', icon: Folder }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => { setActiveTab(tab.id as any); setSearchQuery(''); setPage(0); }}
             className={cn(
-              "px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2",
+              "py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all min-h-[44px] shrink-0 whitespace-nowrap",
               activeTab === tab.id 
-                ? "bg-white text-indigo-600 shadow-sm" 
-                : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
+                : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
             )}
           >
             <tab.icon className="w-4 h-4" />
-            {tab.label}
+            <span>{tab.label}</span>
           </button>
         ))}
       </div>
 
+      {/* Tab Content */}
       <AnimatePresence mode="wait">
         {activeTab === 'overview' ? (
-          <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                { label: 'Total Students', value: stats?.students, icon: Users, color: 'indigo', trend: '+5' },
-                { label: 'Total Teachers', value: stats?.teachers, icon: ShieldCheck, color: 'emerald', trend: '+1' },
-                { label: 'Classes', value: stats?.classes, icon: Folder, color: 'amber', trend: '+2' },
-                { label: 'Total Sessions', value: stats?.sessions, icon: Calendar, color: 'rose', trend: '+53' },
-              ].map((s, i) => (
-                <div key={i} className="glass-card p-6 border-white bg-white/40 shadow-xl shadow-slate-200/50">
-                   <div className="flex justify-between items-start mb-4">
-                     <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50")}>
-                        <s.icon className="w-6 h-6 text-slate-600" />
-                     </div>
-                     <span className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">{s.trend}</span>
-                   </div>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{s.label}</p>
-                   <h3 className="text-3xl font-black text-slate-900 leading-none">{s.value ?? <Loader2 className="w-6 h-6 animate-spin"/>}</h3>
+          <motion.div
+            key="tab-overview"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+              <div className="glass-card p-4 sm:p-5">
+                <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 block tracking-wider">Faculty</span>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">{stats?.total_teachers || 0}</p>
+                <span className="text-[11px] text-slate-500 mt-1 block">Active Instructors</span>
+              </div>
+              <div className="glass-card p-4 sm:p-5">
+                <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 block tracking-wider">Students</span>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">{stats?.total_students || 0}</p>
+                <span className="text-[11px] text-slate-500 mt-1 block">Enrolled Candidates</span>
+              </div>
+              <div className="glass-card p-4 sm:p-5">
+                <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 block tracking-wider">Classes</span>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">{stats?.total_classes || 0}</p>
+                <span className="text-[11px] text-slate-500 mt-1 block">Active Modules</span>
+              </div>
+              <div className="glass-card p-4 sm:p-5">
+                <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 block tracking-wider">Overall Rate</span>
+                <p className={cn("text-2xl sm:text-3xl font-black mt-1", (stats?.avg_attendance_rate || 0) >= 75 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                  {stats?.avg_attendance_rate || 0}%
+                </p>
+                <span className="text-[11px] text-slate-500 mt-1 block">Institution Average</span>
+              </div>
+            </div>
+
+            {/* Low Attendance Roster */}
+            {lowAttendanceStudents.length > 0 && (
+              <div className="glass-card border-rose-200 dark:border-rose-900/50 p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingDown className="w-5 h-5 text-rose-600" />
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Critical Short Attendance (&lt;75%)</h3>
                 </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-               <div className="lg:col-span-2 glass-card p-8 bg-white/50 backdrop-blur-md">
-                  <div className="flex items-center justify-between mb-8">
-                     <div>
-                        <h3 className="text-lg font-black text-slate-900">System Activity</h3>
-                        <p className="text-xs text-slate-500 italic">Attendance check-ins past 7 days</p>
-                     </div>
-                     <div className="flex items-center gap-2">
-                        <TrendingUp className={cn("w-4 h-4", (stats?.growth || 0) >= 0 ? "text-emerald-500" : "text-rose-500")} />
-                        <span className={cn("text-xs font-black", (stats?.growth || 0) >= 0 ? "text-emerald-500" : "text-rose-500")}>
-                           {stats?.growth > 0 ? '+' : ''}{stats?.growth || 0}% Growth
-                        </span>
-                     </div>
-                  </div>
-                  <div className="h-[300px] w-full">
-                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={stats?.trends || []}>
-                           <defs>
-                             <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                               <stop offset="5%" stopColor={darkMode ? "#39ff14" : "#6366f1"} stopOpacity={darkMode ? 0.3 : 0.1}/>
-                               <stop offset="95%" stopColor={darkMode ? "#39ff14" : "#6366f1"} stopOpacity={0}/>
-                             </linearGradient>
-                           </defs>
-                           <XAxis dataKey="date" hide />
-                           <Tooltip contentStyle={{ 
-                              borderRadius: '16px', 
-                              border: darkMode ? '1px solid rgba(57, 255, 20, 0.2)' : 'none', 
-                              boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
-                              backgroundColor: darkMode ? '#121212' : '#ffffff',
-                              color: darkMode ? '#39ff14' : '#000000'
-                            }} labelStyle={{ fontWeight: 'bold' }} />
-                           <Area type="monotone" dataKey="count" stroke={darkMode ? "#39ff14" : "#6366f1"} strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
-                        </AreaChart>
-                     </ResponsiveContainer>
-                  </div>
-               </div>
-
-               <div className="glass-card p-8 bg-slate-900 text-white relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-8 opacity-5">
-                     <AlertCircle className="w-32 h-32" />
-                  </div>
-                  <h3 className="text-lg font-black mb-1 text-white">Critical Roster</h3>
-                  <p className="text-xs text-slate-400 mb-8 font-medium">Students below 75% attendance</p>
-                  
-                  <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
-                     {lowAttendanceStudents.length > 0 ? lowAttendanceStudents.map((s, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                           <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center font-black text-xs">{s.name.charAt(0)}</div>
-                              <span className="text-sm font-bold truncate max-w-[100px]">{s.name}</span>
-                           </div>
-                           <span className="text-red-400 font-black text-sm">{s.attendance_percentage}%</span>
-                        </div>
-                     )) : (
-                        <div className="text-center py-12">
-                           <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-4 opacity-40" />
-                           <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">All Clear</p>
-                        </div>
-                     )}
-                  </div>
-               </div>
-            </div>
+                <div className="space-y-2 max-h-60 overflow-y-auto touch-scroll">
+                  {lowAttendanceStudents.map((s, idx) => (
+                    <div key={idx} className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{s.name}</p>
+                        <p className="text-[11px] text-slate-500 font-mono">{s.enrollment_no}</p>
+                      </div>
+                      <span className="badge badge--error text-xs">{s.attendance_percentage}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         ) : (
-          <motion.div key="management" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="relative group w-full max-w-md">
-                  <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-600 transition-all" />
-                  <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-100 rounded-[1.25rem] shadow-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all font-medium text-slate-700" placeholder={`Search ${activeTab}...`} />
+          <motion.div
+            key={`tab-${activeTab}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-4 sm:space-y-6"
+          >
+            {/* Controls Row */}
+            <div className="glass-card p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder={`Search ${activeTab}...`}
+                    className="field-input pl-9"
+                  />
                 </div>
-                <div className="flex items-center gap-2">
-                   <button onClick={exportActiveTabCSV} className="px-4 py-3 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-2xl hover:bg-slate-50 flex items-center gap-2 shadow-sm">
-                      <Download className="w-4 h-4 text-indigo-600" />
-                      Export {activeTab.toUpperCase()} CSV
-                   </button>
-                   {activeTab === 'teachers' && (
-                      <button onClick={() => setShowCreateTeacher(true)} className="btn-gradient px-7 py-3.5 flex items-center gap-2 shadow-lg shadow-indigo-100"><UserPlus className="w-5 h-5" />New Teacher</button>
-                   )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button 
+                    onClick={exportActiveTabCSV}
+                    className="btn-outlined text-xs font-bold flex items-center gap-1.5 px-3 py-2 flex-1 sm:flex-none"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
+                  {activeTab === 'teachers' && (
+                    <button
+                      onClick={() => setShowCreateTeacher(true)}
+                      className="btn-gradient text-xs font-bold flex items-center gap-1.5 px-3 py-2 flex-1 sm:flex-none"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Add Faculty</span>
+                    </button>
+                  )}
                 </div>
-             </div>
+              </div>
 
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left">
-                   <thead className="bg-slate-50/50 border-b border-slate-50">
-                     <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                       {activeTab === 'teachers' && (<><th className="px-8 py-5">Personnel info</th><th className="px-8 py-5 text-center">Designation</th><th className="px-8 py-5 text-right">Access Controls</th></>)}
-                       {activeTab === 'students' && (<><th className="px-8 py-5">Academic info</th><th className="px-8 py-5">Enrollment</th><th className="px-8 py-5 text-right">Security</th></>)}
-                       {activeTab === 'classes' && (<><th className="px-8 py-5">Class details</th><th className="px-8 py-5 text-center">Join Code</th><th className="px-8 py-5 text-right">Data Management</th></>)}
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-50">
-                     {filteredItems().map((item: any) => (
-                       <tr key={item.id} className="group hover:bg-slate-50/50 transition-colors">
-                         {activeTab === 'teachers' && (
-                           <><td className="px-8 py-5"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">{item.name.charAt(0)}</div><div><div className="text-slate-900 font-bold">{item.name}</div><div className="text-xs text-slate-400">{item.email}</div></div></div></td><td className="px-8 py-5 text-center"><span className="text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 px-3 py-1 rounded-md">Faculty</span></td><td className="px-8 py-5 text-right"><button onClick={() => setResettingUserId(item.id)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><Key className="w-5 h-5" /></button></td></>
-                         )}
-                         {activeTab === 'students' && (() => {
-                            const prof = Array.isArray(item.student_profiles) ? item.student_profiles[0] : item.student_profiles;
-                            return (
-                              <>
-                                <td className="px-8 py-5">
-                                  <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">{item.name.charAt(0)}</div>
-                                    <div>
-                                      <div className="text-slate-900 font-bold">{item.name}</div>
-                                      <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{prof?.course || 'Course'} • Sem {prof?.semester || 'N/A'}</div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-8 py-5 font-mono text-xs text-slate-500">{prof?.enrollment_no || 'N/A'}</td>
-                                <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
-                                  <button onClick={() => handleResetDevice(item.id)} className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all" title="Reset Device Link"><Smartphone className="w-5 h-5" /></button>
-                                  <button onClick={() => setResettingUserId(item.id)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Access Recovery"><Key className="w-5 h-5" /></button>
-                                </td>
-                              </>
-                            );
-                          })()}
-                         {activeTab === 'classes' && (
-                           <><td className="px-8 py-5"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><Folder className="w-5 h-5" /></div><div><div className="text-slate-900 font-bold">{item.name}</div><div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Owner: {item.users?.name || 'System'}</div></div></div></td><td className="px-8 py-5 text-center"><span className="font-mono text-xs font-black bg-slate-100 text-slate-600 px-3 py-1 rounded-lg border border-slate-200">{item.join_code}</span></td><td className="px-8 py-5 text-right"><button onClick={() => deleteClass(item.id)} className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button></td></>
-                         )}
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
+              {/* Data Table with Smooth Touch Scrolling */}
+              <div className="overflow-x-auto touch-scroll mt-4">
+                <table className="w-full text-left min-w-[340px]">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                      <th className="py-3 px-3 sm:px-5">Name & Details</th>
+                      <th className="py-3 px-3 sm:px-5 text-center">Identifier</th>
+                      <th className="py-3 px-3 sm:px-5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-xs sm:text-sm">
+                    {activeTab === 'teachers' && teachers.map(t => (
+                      <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-750">
+                        <td className="py-3 px-3 sm:px-5">
+                          <div className="font-bold text-slate-900 dark:text-white">{t.name}</div>
+                          <div className="text-[11px] text-slate-500">{t.email}</div>
+                        </td>
+                        <td className="py-3 px-3 sm:px-5 text-center font-mono text-xs text-slate-600 dark:text-slate-400">
+                          {t.teacher_profiles?.employee_id || 'FACULTY'}
+                        </td>
+                        <td className="py-3 px-3 sm:px-5 text-right">
+                          <button 
+                            onClick={() => setResettingUserId(t.id)} 
+                            className="p-2 text-slate-400 hover:text-blue-600 rounded-lg touch-target"
+                            title="Reset PIN"
+                          >
+                            <Key className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {activeTab === 'students' && students.map(s => {
+                      const prof = Array.isArray(s.student_profiles) ? s.student_profiles[0] : s.student_profiles;
+                      return (
+                        <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-750">
+                          <td className="py-3 px-3 sm:px-5">
+                            <div className="font-bold text-slate-900 dark:text-white">{s.name}</div>
+                            <div className="text-[11px] text-slate-500">{prof?.course || 'General'} • Sem {prof?.semester || 'I'}</div>
+                          </td>
+                          <td className="py-3 px-3 sm:px-5 text-center font-mono text-xs text-slate-600 dark:text-slate-400">
+                            {prof?.enrollment_no || 'N/A'}
+                          </td>
+                          <td className="py-3 px-3 sm:px-5 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button 
+                                onClick={() => handleResetDevice(s.id)} 
+                                className="p-2 text-slate-400 hover:text-amber-600 rounded-lg touch-target"
+                                title="Reset Device Link"
+                              >
+                                <Smartphone className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => setResettingUserId(s.id)} 
+                                className="p-2 text-slate-400 hover:text-blue-600 rounded-lg touch-target"
+                                title="Reset PIN"
+                              >
+                                <Key className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {activeTab === 'classes' && classes.map(c => (
+                      <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-750">
+                        <td className="py-3 px-3 sm:px-5">
+                          <div className="font-bold text-slate-900 dark:text-white">{c.name}</div>
+                          <div className="text-[11px] text-slate-500">Instructor: {c.users?.name || 'Faculty'}</div>
+                        </td>
+                        <td className="py-3 px-3 sm:px-5 text-center font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                          {c.join_code}
+                        </td>
+                        <td className="py-3 px-3 sm:px-5 text-right">
+                          <button 
+                            onClick={() => deleteClass(c.id)} 
+                            className="p-2 text-slate-400 hover:text-rose-600 rounded-lg touch-target"
+                            title="Delete Class"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {activeItems.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="py-8 text-center text-slate-400 italic">
+                          No records found for {activeTab}.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {activeTab !== 'classes' && totalCount > pageSize && (
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800 text-xs">
+                  <span className="text-slate-500">Page {page + 1} of {Math.ceil(totalCount / pageSize)}</span>
+                  <div className="flex gap-2">
+                    <button 
+                      disabled={page === 0} 
+                      onClick={() => setPage(p => p - 1)}
+                      className="btn-outlined px-3 py-1.5 text-xs disabled:opacity-40"
+                    >
+                      Previous
+                    </button>
+                    <button 
+                      disabled={(page + 1) * pageSize >= totalCount} 
+                      onClick={() => setPage(p => p + 1)}
+                      className="btn-outlined px-3 py-1.5 text-xs disabled:opacity-40"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {activeTab !== 'classes' && totalCount > pageSize && (
-               <div className="flex items-center justify-between px-8 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm mt-4">
-                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-                   Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, totalCount)} of {totalCount}
-                 </p>
-                 <div className="flex gap-2">
-                   <button 
-                     type="button"
-                     disabled={page === 0 || loading}
-                     onClick={() => setPage(p => p - 1)}
-                     className="px-4 py-2 text-xs font-black uppercase text-slate-500 hover:text-indigo-600 disabled:opacity-50 transition-colors"
-                   >
-                     Previous
-                   </button>
-                   <div className="flex items-center gap-1">
-                     {Array.from({ length: Math.ceil(totalCount / pageSize) }).map((_, i) => (
-                       <button
-                         key={i}
-                         type="button"
-                         onClick={() => setPage(i)}
-                         className={cn(
-                           "w-8 h-8 rounded-lg text-[10px] font-black transition-all",
-                           page === i ? "bg-indigo-600 text-white shadow-lg" : "text-slate-400 hover:bg-slate-50"
-                         )}
-                       >
-                         {i + 1}
-                       </button>
-                     )).slice(Math.max(0, page - 2), Math.min(Math.ceil(totalCount / pageSize), page + 3))}
-                   </div>
-                   <button 
-                     type="button"
-                     disabled={(page + 1) * pageSize >= totalCount || loading}
-                     onClick={() => setPage(p => p + 1)}
-                     className="px-4 py-2 text-xs font-black uppercase text-slate-500 hover:text-indigo-600 disabled:opacity-50 transition-colors"
-                   >
-                     Next
-                   </button>
-                 </div>
-               </div>
-             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Hire Teacher Modal */}
-      <AnimatePresence>
-        {showCreateTeacher && (
-           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl">
-              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg p-10">
-                    <div className="flex justify-between items-start mb-10">
-                       <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-100"><UserPlus className="w-7 h-7 text-white" /></div>
-                       <button onClick={() => setShowCreateTeacher(false)} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400"><X className="w-6 h-6" /></button>
-                    </div>
-                    <h3 className="text-2xl font-black text-slate-900 mb-2">Hire New Faculty</h3>
-                    <p className="text-slate-500 text-sm mb-10 leading-relaxed font-medium">Provide registration credentials for the new teaching personnel.</p>
-                    <form onSubmit={handleCreateTeacher} className="grid grid-cols-2 gap-6">
-                       <div className="col-span-2"><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Full Name</label><input type="text" value={teacherName} onChange={e => setTeacherName(e.target.value)} className="field-input w-full" placeholder="e.g. Dr. Robert Fox" required /></div>
-                       <div><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Personnel ID</label><input type="text" value={teacherId} onChange={e => setTeacherId(e.target.value)} className="field-input w-full" placeholder="TCH-2024" required /></div>
-                       <div><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Password</label><input type="password" value={teacherPassword} onChange={e => setTeacherPassword(e.target.value.replace(/\D/g, '').slice(0, 6))} className="field-input w-full font-mono text-center" placeholder="******" maxLength={6} required /></div>
-                       <div className="col-span-2"><label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Authorized Email</label><input type="email" value={teacherEmail} onChange={e => setTeacherEmail(e.target.value)} className="field-input w-full" placeholder="faculty@college.com" required /></div>
-                       <button disabled={loading} type="submit" className="col-span-2 btn-gradient mt-6 py-5 rounded-2xl shadow-xl shadow-indigo-100 font-black tracking-widest uppercase text-xs">{loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto"/> : 'Grant Access Rights'}</button>
-                    </form>
-              </motion.div>
-           </div>
-        )}
+      {/* Add Faculty Modal */}
+      {showCreateTeacher && (
+        <div className="modal-overlay" onClick={() => setShowCreateTeacher(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="sheet-drag-handle sm:hidden" />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-[--color-text-primary]">Add Faculty Member</h3>
+              <button onClick={() => setShowCreateTeacher(false)} className="p-1 text-slate-400 hover:text-slate-600 touch-target">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateTeacher} className="space-y-3.5">
+              <div className="field-group">
+                <label className="field-label">Full Name</label>
+                <input 
+                  type="text" 
+                  value={teacherName} 
+                  onChange={e => setTeacherName(e.target.value)} 
+                  placeholder="Dr. Rajesh Kumar" 
+                  className="field-input" 
+                  required 
+                />
+              </div>
+              <div className="field-group">
+                <label className="field-label">Employee / Faculty ID</label>
+                <input 
+                  type="text" 
+                  value={teacherId} 
+                  onChange={e => setTeacherId(e.target.value)} 
+                  placeholder="FAC-2026" 
+                  className="field-input" 
+                  required 
+                />
+              </div>
+              <div className="field-group">
+                <label className="field-label">Institutional Email</label>
+                <input 
+                  type="email" 
+                  value={teacherEmail} 
+                  onChange={e => setTeacherEmail(e.target.value)} 
+                  placeholder="faculty@college.com" 
+                  className="field-input" 
+                  required 
+                />
+              </div>
+              <div className="field-group">
+                <label className="field-label">6-Digit PIN</label>
+                <input 
+                  type="password" 
+                  value={teacherPassword} 
+                  onChange={e => setTeacherPassword(e.target.value.replace(/\D/g, '').slice(0, 6))} 
+                  placeholder="••••••" 
+                  maxLength={6}
+                  inputMode="numeric"
+                  className="field-input font-mono text-center tracking-[0.3em]" 
+                  required 
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button disabled={loading} type="submit" className="btn-gradient flex-1 font-bold">
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto"/> : 'Add Faculty'}
+                </button>
+                <button type="button" onClick={() => setShowCreateTeacher(false)} className="btn-outlined px-4">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-        {resettingUserId && (
-           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl">
-              <motion.div initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm p-10 text-center">
-                 <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center mb-8 mx-auto shadow-xl shadow-slate-200"><Key className="w-8 h-8 text-white" /></div>
-                 <h3 className="text-2xl font-black text-slate-900 mb-2">Access Recovery</h3>
-                 <p className="text-slate-500 text-sm mb-8 font-medium">Assign a new security PIN for this personnel.</p>
-                 <div className="space-y-6">
-                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value.replace(/\D/g, '').slice(0, 6))} className="w-full text-center text-3xl font-black tracking-[0.5em] py-4 bg-slate-50 border-2 border-transparent focus:border-slate-900 rounded-2xl outline-none" placeholder="******" maxLength={6} />
-                    <div className="flex gap-4">
-                       <button onClick={() => setResettingUserId(null)} className="flex-1 py-4 text-xs font-black uppercase text-slate-400">Cancel</button>
-                       <button onClick={() => handleResetPassword(resettingUserId!)} disabled={loading || !/^\d{6}$/.test(newPassword)} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200 disabled:opacity-50">Confirm PIN</button>
-                    </div>
-                 </div>
-              </motion.div>
-           </div>
-        )}
-      </AnimatePresence>
+      {/* Reset PIN Modal */}
+      {resettingUserId && (
+        <div className="modal-overlay" onClick={() => setResettingUserId(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="sheet-drag-handle sm:hidden" />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-[--color-text-primary]">Reset Security PIN</h3>
+              <button onClick={() => setResettingUserId(null)} className="p-1 text-slate-400 hover:text-slate-600 touch-target">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-[--color-text-secondary] mb-4">
+              Assign a new 6-digit numeric security PIN for this account.
+            </p>
+            <div className="space-y-4">
+              <input 
+                type="password" 
+                value={newPassword} 
+                onChange={e => setNewPassword(e.target.value.replace(/\D/g, '').slice(0, 6))} 
+                className="field-input text-center text-2xl font-mono tracking-[0.3em]" 
+                placeholder="••••••" 
+                maxLength={6} 
+                inputMode="numeric"
+                autoFocus
+              />
+              <div className="flex gap-2 pt-2">
+                <button 
+                  onClick={() => handleResetPassword(resettingUserId)} 
+                  disabled={loading || !/^\d{6}$/.test(newPassword)} 
+                  className="btn-gradient flex-1 font-bold"
+                >
+                  Confirm PIN
+                </button>
+                <button onClick={() => setResettingUserId(null)} className="btn-outlined px-4">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
