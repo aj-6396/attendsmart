@@ -9,90 +9,87 @@ interface AboutPageProps {
 export default function AboutPage({ onBack }: AboutPageProps) {
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-12"
+      exit={{ opacity: 0, scale: 0.96 }}
+      className="min-h-screen flex flex-col items-center justify-center px-3 sm:px-6 py-6 sm:py-12 safe-area-pt safe-area-pb"
     >
-      <div className="w-full max-w-3xl glass-card p-6 sm:p-10 relative overflow-hidden">
+      <div className="w-full max-w-3xl glass-card p-5 sm:p-10 relative overflow-hidden">
         {/* Background Accents */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-[--color-primary] rounded-full blur-[100px] opacity-20 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-[--color-accent] rounded-full blur-[100px] opacity-20 pointer-events-none" />
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-500 rounded-full blur-[100px] opacity-10 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-rose-500 rounded-full blur-[100px] opacity-10 pointer-events-none" />
 
         <button 
           onClick={onBack}
-          className="flex items-center gap-2 text-[--color-text-secondary] hover:text-[--color-primary] transition-colors mb-8 group relative z-10"
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors mb-6 group relative z-10 touch-target p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Back to role selection"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span className="font-medium">Back</span>
+          <span className="font-bold text-sm">Back</span>
         </button>
 
-        <div className="flex items-center gap-4 mb-8 relative z-10">
-          <div className="w-14 h-14 rounded-xl bg-[#002147] dark:bg-blue-600 flex items-center justify-center text-white shadow-lg">
-            <ShieldCheck className="w-7 h-7" />
+        <div className="flex items-center gap-3.5 mb-8 relative z-10">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#002147] dark:bg-blue-600 flex items-center justify-center text-white shadow-md shrink-0">
+            <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-[--color-text-primary] tracking-tight">ClassMark</h1>
-            <p className="text-[--color-primary] font-medium mt-1">Smart Attendance System</p>
+            <h1 className="text-2xl sm:text-4xl font-bold text-[--color-text-primary] tracking-tight">ClassMark</h1>
+            <p className="text-blue-600 dark:text-blue-400 font-semibold text-xs sm:text-sm mt-0.5">Smart Institutional Attendance System</p>
           </div>
         </div>
 
-        <div className="space-y-8 relative z-10">
+        <div className="space-y-6 sm:space-y-8 relative z-10">
           <section>
-            <h2 className="text-xl font-semibold text-[--color-text-primary] mb-3 border-b border-[--color-glass-border] pb-2">About the App</h2>
-            <p className="text-[--color-text-secondary] leading-relaxed text-sm sm:text-base">
-              ClassMark is a premium, institutional attendance monitoring system designed for modern colleges. 
-              It leverages advanced technologies to ensure 100% attendance accuracy and prevent proxy marking.
+            <h2 className="text-lg sm:text-xl font-bold text-[--color-text-primary] mb-2.5 border-b border-[--color-glass-border] pb-2">About ClassMark</h2>
+            <p className="text-[--color-text-secondary] leading-relaxed text-xs sm:text-sm">
+              ClassMark is a modern, GPS-verified institutional attendance monitoring platform built for colleges and universities. 
+              It provides hardware-level device integrity, dynamic proximity verification, and tamper-resistant logging.
             </p>
             
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-              <div className="glass-card--subtle p-5 rounded-xl border border-[--color-glass-border] hover:border-[--color-primary]/30 transition-colors">
-                <Smartphone className="w-7 h-7 text-[--color-primary] mb-3" />
-                <h3 className="font-semibold text-[--color-text-primary] text-sm mb-1">Hardware Locking</h3>
-                <p className="text-xs text-[--color-text-secondary]">Students are securely locked to their registered devices.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4 sm:mt-6">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <Smartphone className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" />
+                <h3 className="font-bold text-[--color-text-primary] text-xs sm:text-sm mb-1">Hardware Locking</h3>
+                <p className="text-[11px] sm:text-xs text-[--color-text-secondary]">Students are bound to their verified physical device.</p>
               </div>
-              <div className="glass-card--subtle p-5 rounded-xl border border-[--color-glass-border] hover:border-[--color-secondary]/30 transition-colors">
-                <MapPin className="w-7 h-7 text-[--color-secondary] mb-3" />
-                <h3 className="font-semibold text-[--color-text-primary] text-sm mb-1">Geo-Fencing</h3>
-                <p className="text-xs text-[--color-text-secondary]">Precise proximity checks using the Haversine Algorithm.</p>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <MapPin className="w-6 h-6 text-emerald-600 dark:text-emerald-400 mb-2" />
+                <h3 className="font-bold text-[--color-text-primary] text-xs sm:text-sm mb-1">Smart Geofencing</h3>
+                <p className="text-[11px] sm:text-xs text-[--color-text-secondary]">Dynamic indoor GPS accuracy checks using the Haversine model.</p>
               </div>
-              <div className="glass-card--subtle p-5 rounded-xl border border-[--color-glass-border] hover:border-[--color-accent]/30 transition-colors">
-                <Key className="w-7 h-7 text-[--color-accent] mb-3" />
-                <h3 className="font-semibold text-[--color-text-primary] text-sm mb-1">Dynamic OTP</h3>
-                <p className="text-xs text-[--color-text-secondary]">Time-bound, secure OTP verification for classes.</p>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <Key className="w-6 h-6 text-amber-600 dark:text-amber-400 mb-2" />
+                <h3 className="font-bold text-[--color-text-primary] text-xs sm:text-sm mb-1">Dynamic OTP</h3>
+                <p className="text-[11px] sm:text-xs text-[--color-text-secondary]">Live, time-limited OTP codes generated for each class session.</p>
               </div>
             </div>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-[--color-text-primary] mb-4 border-b border-[--color-glass-border] pb-2">Know the Developer</h2>
-            <div className="flex flex-col sm:flex-row gap-6">
-              <div className="flex-1 glass-card--subtle p-5 rounded-xl border border-[--color-glass-border] hover:border-[--color-primary]/30 transition-colors group">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:scale-110 transition-transform">
-                    AS
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[--color-text-primary] text-lg">
-                      <a href="https://aj-7portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-[--color-primary] transition-colors flex items-center gap-1.5 group/link">
-                        Ambuj Singh
-                        <svg className="w-4 h-4 opacity-0 -ml-2 group-hover/link:opacity-100 group-hover/link:translate-x-2 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
-                    </h3>
-                    <p className="text-xs text-[--color-primary] font-medium uppercase tracking-wider">Founder & Developer</p>
-                  </div>
+            <h2 className="text-lg sm:text-xl font-bold text-[--color-text-primary] mb-3 border-b border-[--color-glass-border] pb-2">Developer & Architect</h2>
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-full bg-[#002147] dark:bg-blue-600 flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0">
+                  AS
                 </div>
-                <p className="text-sm text-[--color-text-secondary]">
-                  Passionate about building secure, scalable, and intuitive software solutions for modern education.
-                </p>
+                <div>
+                  <h3 className="font-bold text-[--color-text-primary] text-base">
+                    <a href="https://aj-7portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
+                      Ambuj Singh
+                      <span className="text-xs">↗</span>
+                    </a>
+                  </h3>
+                  <p className="text-[11px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">Founder & Lead Engineer</p>
+                </div>
               </div>
+              <p className="text-xs text-[--color-text-secondary] leading-relaxed">
+                Focused on crafting secure, high-performance web and native mobile solutions for education and enterprise.
+              </p>
             </div>
           </section>
           
-          <div className="text-center mt-8 pt-6 border-t border-[--color-glass-border]/50 text-xs text-[--color-text-secondary]">
-            <p>ClassMark © 2026 <a href="https://aj-7portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-[--color-primary] transition-colors underline decoration-dotted underline-offset-2">Ambuj Singh</a>. All Rights Reserved.</p>
+          <div className="text-center pt-4 border-t border-[--color-glass-border]/50 text-[11px] text-[--color-text-secondary]">
+            <p>ClassMark © 2026 <a href="https://aj-7portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:underline">Ambuj Singh</a>. All Rights Reserved.</p>
           </div>
         </div>
       </div>

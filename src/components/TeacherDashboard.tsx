@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone, Trash2 } from 'lucide-react';
+import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone, Trash2, ShieldCheck, FileText } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -16,6 +16,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ThemeToggle from './ThemeToggle';
 import { downloadFile } from '../lib/fileDownload';
+import { useBackButton } from '../lib/backButton';
 
 interface Session {
   id: string;
@@ -77,6 +78,43 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [samplingProgress, setSamplingProgress] = useState<{ current: number; total: number } | null>(null);
   const [locationPermission, setLocationPermission] = useState<string | null>(null);
+
+  // Android Back Button handlers
+  useBackButton(() => {
+    if (resettingUserId !== null) {
+      setResettingUserId(null);
+      setNewPassword('');
+      return true;
+    }
+    return false;
+  }, resettingUserId !== null, 60);
+
+  useBackButton(() => {
+    if (selectedPastSession !== null) {
+      setSelectedPastSession(null);
+      return true;
+    }
+    return false;
+  }, selectedPastSession !== null, 55);
+
+  useBackButton(() => {
+    if (showCreateClass) {
+      setShowCreateClass(false);
+      setNewClassName('');
+      return true;
+    }
+    return false;
+  }, showCreateClass, 50);
+
+  useBackButton(() => {
+    if (activeClass !== null) {
+      setActiveClass(null);
+      setActiveSession(null);
+      setSelectedPastSession(null);
+      return true;
+    }
+    return false;
+  }, activeClass !== null && !showCreateClass && selectedPastSession === null && resettingUserId === null, 30);
 
   useEffect(() => {
     // Check initial location permission status
@@ -175,11 +213,10 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
     setLoading(true);
     setError(null);
     setSuccess(null);
-    console.log('Attempting to create class:', newClassName);
     
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     const { data, error } = await supabase.from('classes').insert({
-       name: newClassName,
+       name: newClassName.trim(),
        join_code: code,
        created_by: user.id
     }).select().single();
@@ -188,7 +225,6 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
        console.error('Class creation error:', error);
        setError(error.message);
     } else {
-       console.log('Class created successfully:', data);
        setClasses(prev => [...prev, data]);
        setShowCreateClass(false);
        setNewClassName('');
@@ -236,7 +272,6 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       const sessionDates = sessions.map(s => format(new Date(s.created_at), 'yyyy-MM-dd'));
       const headers = ['Student Name', 'Enrollment No', 'Exam Roll No', ...sessionDates, 'Total Present', '%'];
       
-      // Sort students by Examination Roll Number in ascending order
       const sortedEnrollmentData = [...enrollmentData].sort((a: any, b: any) => {
         const studentA = Array.isArray(a.users) ? a.users[0] : a.users;
         const profileA = Array.isArray(studentA?.student_profiles) 
@@ -303,7 +338,6 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
     if (!activeClass) return;
     setLoading(true);
     try {
-      // 1. Fetch data with explicit aliases and defensive selection
       const { data: enrollmentData } = await supabase
         .from('class_enrollments')
         .select(`
@@ -338,23 +372,21 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       
       // Header Section
       doc.setFontSize(22);
-      doc.setTextColor(79, 70, 229); // indigo-600
+      doc.setTextColor(0, 33, 71);
       doc.text('Attendance Register Report', 14, 20);
       
       doc.setFontSize(14);
-      doc.setTextColor(15, 23, 42); // slate-900
+      doc.setTextColor(15, 23, 42);
       doc.text(`Class: ${activeClass.name}`, 14, 28);
       
       doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139); // slate-500
+      doc.setTextColor(100, 116, 139);
       doc.text(`Generated on: ${format(new Date(), 'PPPP')}`, 14, 34);
       doc.text(`Join Code: ${activeClass.join_code}`, 14, 38);
 
-      // Table Generation
       const sessionDates = sessions.map(s => format(new Date(s.created_at), 'yyyy-MM-dd'));
       const head = [['S.No', 'Student Information', 'Enrollment', 'Roll No', ...sessionDates, 'Score']];
       
-      // Sort students by Examination Roll Number in ascending order
       const sortedPdfEnrollmentData = [...enrollmentData].sort((a: any, b: any) => {
         const studentA = Array.isArray(a.users) ? a.users[0] : a.users;
         const profileA = Array.isArray(studentA?.student_profiles) 
@@ -405,7 +437,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
         body,
         startY: 45,
         theme: 'grid',
-        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontSize: 8, halign: 'center' },
+        headStyles: { fillColor: [0, 33, 71], textColor: [255, 255, 255], fontSize: 8, halign: 'center' },
         columnStyles: {
           0: { cellWidth: 10, halign: 'center' },
           1: { cellWidth: 'auto', halign: 'left' },
@@ -432,7 +464,6 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
     }
   };
 
-
   const fetchSessions = useCallback(async () => {
     if (!activeClass) return;
     const { data, error } = await supabase
@@ -453,10 +484,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   useEffect(() => {
     fetchSessions();
 
-    // Realtime subscription
     const channel = supabase
       .channel('sessions_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_sessions', filter: `class_id=eq.${activeClass?.id}` }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_sessions', filter: `class_id=eq.${activeClass?.id}` }, () => {
         fetchSessions();
       })
       .subscribe();
@@ -464,7 +494,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user.id, activeClass?.id]);
+  }, [user.id, activeClass?.id, fetchSessions]);
 
   const fetchAttendance = useCallback(async () => {
     const sessionToFetch = selectedPastSession || activeSession;
@@ -496,7 +526,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
 
       const channel = supabase
         .channel('attendance_changes')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attendance_records', filter: `session_id=eq.${activeSession.id}` }, (payload) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attendance_records', filter: `session_id=eq.${activeSession.id}` }, () => {
           fetchAttendance();
         })
         .subscribe();
@@ -516,10 +546,8 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   }, [activeTab, activeClass?.id]);
 
   useEffect(() => {
-    // Clear student stats when switching classes to prevent ghost data
     setAllStudents([]);
   }, [activeClass?.id]);
-
 
   const fetchAllStudentStats = async () => {
     try {
@@ -545,13 +573,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
         .eq('class_id', activeClass.id);
 
       if (enrollError) throw enrollError;
-      
-      console.log('DEBUG: Enrollments fetched:', enrollments);
 
       const enrolledStudents = (enrollments || []).map((e: any) => {
-        // Handle cases where users might be returned as an array or a single object
         const userData = Array.isArray(e.users) ? e.users[0] : e.users;
-        // student_profiles is a 1-to-1 relation, so it's usually returned as an object, not an array
         const profileData = Array.isArray(userData?.student_profiles) 
           ? userData?.student_profiles[0] 
           : userData?.student_profiles;
@@ -562,8 +586,6 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
           profile: profileData
         };
       }).filter((s: any) => s.id);
-
-      console.log('DEBUG: Enrolled Students Mapped:', enrolledStudents);
 
       const { data: classSessions, error: sessionError } = await supabase
         .from('attendance_sessions')
@@ -650,13 +672,11 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   const endSession = async (sessionId: string) => {
     if (!confirm('Are you sure you want to terminate this live session? Students will no longer be able to mark attendance.')) return;
     
-    // Optimistic UI Update: Close the UI immediately
     const previousActiveSession = activeSession;
     setActiveSession(null);
     
     try {
       setLoading(true);
-      // Deactivate ALL active sessions for this class to ensure a clean slate
       const { error } = await supabase
         .from('attendance_sessions')
         .update({ active: false })
@@ -665,10 +685,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       
       if (error) throw error;
       setSuccess('All active sessions for this class have been terminated.');
-      await fetchSessions(); // Final sync with DB
+      await fetchSessions();
     } catch (err: any) {
       console.error('Error ending session:', err);
-      // Rollback optimistic update on error
       setActiveSession(previousActiveSession);
       setError('Failed to terminate session: ' + err.message);
     } finally {
@@ -719,7 +738,6 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       });
       if (!response.ok) throw new Error('Failed to mark manually');
       setSuccess('Student marked present manually.');
-      // Refresh stats and current attendance list
       fetchAllStudentStats();
       fetchAttendance();
     } catch (err: any) {
@@ -728,6 +746,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
       setLoading(false);
     }
   };
+
   const exportAttendance = async () => {
     if (attendance.length === 0) return;
     try {
@@ -770,7 +789,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   };
 
   return (
-    <div className="space-y-8 page-container">
+    <div className="space-y-6 sm:space-y-8">
       {/* Global Status Messages */}
       <AnimatePresence>
         {(error || success) && (
@@ -778,22 +797,26 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-2 sm:right-4 left-2 sm:left-auto z-[100] max-w-sm w-auto sm:w-full"
+            className="fixed top-3 right-3 left-3 sm:left-auto sm:right-6 sm:max-w-md z-[100] safe-area-pt pointer-events-auto"
           >
             {error && (
-              <div className="alert alert--error shadow-2xl">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <p className="text-sm">{error}</p>
-                <button onClick={() => setError(null)} className="ml-auto">
+              <div className="alert alert--error shadow-2xl flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm truncate">{error}</p>
+                </div>
+                <button onClick={() => setError(null)} className="p-1 touch-target">
                   <X className="w-4 h-4" />
                 </button>
               </div>
             )}
             {success && (
-              <div className="glass-card--success border-l-4 p-4 flex items-center gap-3 shadow-2xl">
-                <CheckCircle2 className="w-5 h-5 text-[--color-success] flex-shrink-0" />
-                <p className="text-sm text-[--color-success]">{success}</p>
-                <button onClick={() => setSuccess(null)} className="ml-auto">
+              <div className="alert alert--success shadow-2xl flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm truncate">{success}</p>
+                </div>
+                <button onClick={() => setSuccess(null)} className="p-1 touch-target">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -807,27 +830,139 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
           key="class-list"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="space-y-6"
+          className="space-y-5 sm:space-y-6"
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
-                <Folder className="w-6 h-6 text-white" />
-              </div>
-              My Classes
-            </h2>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#002147] dark:bg-blue-600 flex items-center justify-center text-white shrink-0">
+                <Folder className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Faculty Portal</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Manage classes and live attendance</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
               <button 
                 onClick={() => setShowCreateClass(true)} 
-                className="btn-gradient px-4 sm:px-6 py-2.5 flex items-center gap-2 shadow-lg shadow-indigo-200 text-sm"
+                className="btn-gradient px-4 py-2.5 flex items-center gap-2 text-xs sm:text-sm font-bold flex-1 sm:flex-none"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 Create Class
               </button>
               <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
               <button 
                 onClick={onLogout}
-                className="p-2.5 bg-white border border-slate-200 rounded-xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm"
+                className="p-2.5 bg-slate-100 dark:bg-slate-700/60 rounded-xl hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 text-slate-600 dark:text-slate-300 transition-colors touch-target"
+                title="Logout"
+                aria-label="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Create Class Modal / Bottom Sheet */}
+          {showCreateClass && (
+            <div className="modal-overlay" onClick={() => setShowCreateClass(false)}>
+              <div className="modal" onClick={e => e.stopPropagation()}>
+                <div className="sheet-drag-handle sm:hidden" />
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-[--color-text-primary]">Create Academic Class</h3>
+                  <button onClick={() => setShowCreateClass(false)} className="p-1 text-slate-400 hover:text-slate-600 touch-target">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <form onSubmit={handleCreateClass} className="space-y-4">
+                  <div className="field-group">
+                    <label className="field-label">Class Name</label>
+                    <input 
+                      type="text" 
+                      value={newClassName} 
+                      onChange={e => setNewClassName(e.target.value)} 
+                      placeholder="e.g. Mathematics - Semester 2" 
+                      className="field-input" 
+                      autoFocus
+                      required 
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button disabled={loading || !newClassName.trim()} type="submit" className="btn-gradient flex-1 font-bold">
+                      {loading ? <Loader2 className="animate-spin mx-auto w-5 h-5"/> : 'Create Class'}
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowCreateClass(false)} 
+                      className="btn-outlined px-4"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {classes.map(c => (
+               <motion.div 
+                 key={c.id} 
+                 whileTap={{ scale: 0.98 }}
+                 onClick={() => setActiveClass(c)} 
+                 className="glass-card p-5 sm:p-6 cursor-pointer hover:border-blue-500/50 transition-all hover:shadow-md group active:scale-[0.98]"
+               >
+                 <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-blue-100 dark:border-blue-900/40">
+                    <Folder className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                 </div>
+                 <h3 className="text-lg font-bold text-[--color-text-primary] mb-2 truncate">{c.name}</h3>
+                 <div className="flex items-center gap-2 flex-wrap">
+                   <span className="text-[11px] font-mono font-bold bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-md text-slate-700 dark:text-slate-300">Code: {c.join_code}</span>
+                   {c.created_by !== user.id && (
+                     <span className="text-[10px] font-bold uppercase bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md">Co-Teacher</span>
+                   )}
+                 </div>
+               </motion.div>
+            ))}
+            {classes.length === 0 && !showCreateClass && (
+               <div className="col-span-full py-16 text-center glass-card">
+                 <Folder className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                 <h3 className="text-slate-900 dark:text-white font-bold">No Classes Created</h3>
+                 <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">Start by creating your first academic class.</p>
+                 <button onClick={() => setShowCreateClass(true)} className="mt-3 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                   + Create Class
+                 </button>
+               </div>
+            )}
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div 
+          key="class-active"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-6"
+        >
+          {/* Active Class Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3 min-w-0">
+              <button 
+                onClick={() => { setActiveClass(null); setActiveSession(null); setSelectedPastSession(null); }} 
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-white shrink-0 touch-target"
+                title="Back to classes"
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white truncate">{activeClass.name}</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Join Code: {activeClass.join_code}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <button 
+                onClick={onLogout}
+                className="p-2 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors touch-target"
                 title="Logout"
               >
                 <LogOut className="w-5 h-5" />
@@ -835,497 +970,359 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
             </div>
           </div>
 
-          {showCreateClass && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-card p-6 border-indigo-100 bg-white/50 backdrop-blur-md"
-            >
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4">Create New Class</h3>
-              <form onSubmit={handleCreateClass} className="flex flex-col sm:flex-row gap-4">
-                <input 
-                  type="text" 
-                  value={newClassName} 
-                  onChange={e => setNewClassName(e.target.value)} 
-                  placeholder="e.g. Mathematics Sem-2" 
-                  className="field-input flex-1" 
-                  required 
-                />
-                <div className="flex gap-2">
-                  <button disabled={loading} type="submit" className="btn-gradient px-8">
-                    {loading ? <Loader2 className="animate-spin mx-auto w-5 h-5"/> : 'Create'}
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowCreateClass(false)} 
-                    className="px-6 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classes.map(c => (
-               <motion.div 
-                 key={c.id} 
-                 whileHover={{ y: -5 }}
-                 onClick={() => setActiveClass(c)} 
-                 className="glass-card p-6 cursor-pointer hover:border-indigo-400 transition-all hover:shadow-2xl group border-2 border-transparent"
-               >
-                 <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Folder className="w-6 h-6 text-indigo-600" />
-                 </div>
-                 <h3 className="text-xl font-black text-slate-900 mb-2 truncate">{c.name}</h3>
-                 <div className="flex items-center gap-2">
-                   <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-500 px-2 py-1 rounded-md tracking-widest">Code: {c.join_code}</span>
-                   {c.created_by !== user.id && <span className="text-[10px] font-black uppercase bg-indigo-100 text-indigo-600 px-2 py-1 rounded-md tracking-widest">Co-Teacher</span>}
-                 </div>
-               </motion.div>
-            ))}
-            {classes.length === 0 && !showCreateClass && (
-               <div className="col-span-full py-20 text-center glass-card border-dashed border-2">
-                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Folder className="w-8 h-8 text-slate-300" />
-                 </div>
-                 <h3 className="text-slate-900 font-bold">No Classes Yet</h3>
-                 <p className="text-slate-500 text-sm mt-1">Start by creating your first academic class.</p>
-               </div>
-            )}
-          </div>
-        </motion.div>
-      ) : (
-        <motion.div 
-          key="dashboard-view"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-8"
-        >
-          {/* Class Header */}
-          <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 sm:px-6 py-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
-             <div className="flex items-center gap-3 min-w-0 flex-1">
-               <button 
-                 onClick={() => setActiveClass(null)} 
-                 className="w-10 h-10 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
-               >
-                  <ArrowLeftIcon className="w-5 h-5" />
-               </button>
-               <div className="min-w-0 flex-1">
-                 <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white leading-tight mb-0.5 truncate">{activeClass.name}</h2>
-                 <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Class Access Code:</span>
-                    <span className="text-[10px] sm:text-[11px] font-black text-indigo-600 dark:text-indigo-400 font-mono bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded">{activeClass.join_code}</span>
-                 </div>
-               </div>
-             </div>
-             <div className="flex items-center gap-2">
-                 <div className="hidden sm:flex flex-col items-end">
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Status</span>
-                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded mt-1">Authorized</span>
-                 </div>
-                 <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} className="ml-2" />
-                 <button 
-                   onClick={onLogout}
-                   className="p-2.5 bg-white border border-slate-100 rounded-xl hover:bg-red-50 transition-all text-slate-400 hover:text-red-600 shadow-sm ml-2"
-                   title="Logout"
-                 >
-                   <LogOut className="w-5 h-5" />
-                 </button>
-             </div>
-          </div>
-
-          <div className="flex gap-2 p-1.5 bg-slate-100/50 rounded-2xl w-full sm:w-fit overflow-x-auto">
-            <button
+          {/* Tab Switcher */}
+          <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl">
+            <button 
               onClick={() => setActiveTab('session')}
               className={cn(
-                "px-4 sm:px-6 py-2.5 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap",
-                activeTab === 'session' 
-                  ? "bg-white text-indigo-600 shadow-sm" 
-                  : "text-slate-400 hover:text-slate-600"
+                "py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all min-h-[44px]",
+                activeTab === 'session' ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
               )}
             >
               <Clock className="w-4 h-4" />
-              Live Session
+              <span>Live Session</span>
             </button>
-            <button
+            <button 
               onClick={() => setActiveTab('records')}
               className={cn(
-                "px-4 sm:px-6 py-2.5 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap",
-                activeTab === 'records' 
-                  ? "bg-white text-indigo-600 shadow-sm" 
-                  : "text-slate-400 hover:text-slate-600"
+                "py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all min-h-[44px]",
+                activeTab === 'records' ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
               )}
             >
-              <BarChart3 className="w-4 h-4" />
-              Records
+              <Users className="w-4 h-4" />
+              <span>Roster & Records</span>
             </button>
           </div>
 
-          <AnimatePresence mode="wait">
-            {activeTab === 'session' ? (
-              <motion.div
-                key="session-tab"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-8"
-              >
-                <section>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                       <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                          <Clock className="w-5 h-5 text-indigo-600" />
-                       </div>
-                       Current Session
-                    </h2>
-                    {!activeSession && (
-                      <button
-                        onClick={createSession}
-                        disabled={loading}
-                        className="btn-gradient disabled:opacity-50 px-6 py-2.5 flex items-center gap-2 shadow-lg shadow-indigo-100"
-                      >
-                        {loading ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span className="text-sm font-bold">{samplingProgress ? `${samplingProgress.current}/${samplingProgress.total}` : 'Starting...'}</span>
-                          </div>
-                        ) : (
-                          <>
-                            <Plus className="w-5 h-5" />
-                            Start Session
-                          </>
-                        )}
-                      </button>
+          {/* Session Tab Content */}
+          {activeTab === 'session' && (
+            <div className="space-y-6">
+              {!activeSession && !selectedPastSession && (
+                <div className="glass-card p-6 sm:p-10 text-center">
+                  <Clock className="w-12 h-12 mx-auto text-blue-600 dark:text-blue-400 mb-3" />
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Active Attendance Session</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+                    Start a GPS-verified attendance session to generate an entrance code for students in your classroom.
+                  </p>
+                  <button 
+                    onClick={createSession} 
+                    disabled={loading} 
+                    className="btn-gradient px-8 py-3.5 text-sm font-bold shadow-lg"
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>{samplingProgress ? `Sampling GPS (${samplingProgress.current}/${samplingProgress.total})...` : 'Creating Session...'}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5" />
+                        <span>Start New Session</span>
+                      </>
                     )}
-                  </div>
+                  </button>
+                </div>
+              )}
 
-                  {(activeSession || selectedPastSession) ? (
-                    <div className="glass-card overflow-hidden">
-                      <div className="bg-[#0f172a] dark:bg-black p-4 sm:p-8 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 opacity-5">
-                           <Clock className="w-32 h-32" />
+              {(activeSession || selectedPastSession) && (
+                <div className="glass-card overflow-hidden p-0">
+                  <div className="bg-[#002147] dark:bg-slate-900 p-4 sm:p-8 text-white">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      {selectedPastSession ? (
+                        <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-200">Past Record</span>
+                            <h3 className="text-xl sm:text-2xl font-black">{format(new Date(selectedPastSession.created_at), 'MMMM dd, yyyy - hh:mm a')}</h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => deleteSession(selectedPastSession.id)} 
+                              className="btn-gradient-danger text-xs font-bold px-4 py-2"
+                            >
+                              Delete
+                            </button>
+                            <button 
+                              onClick={() => setSelectedPastSession(null)} 
+                              className="btn-outlined text-xs text-white border-white/30 px-4 py-2"
+                            >
+                              Close
+                            </button>
+                          </div>
                         </div>
-                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                          {selectedPastSession ? (
-                            <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
-                              <div>
-                                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Historical View</p>
-                                <h3 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white">Record for {format(new Date(selectedPastSession.created_at), 'MMM dd, yyyy')}</h3>
-                              </div>
-                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                <button 
-                                  onClick={() => deleteSession(selectedPastSession.id)}
-                                  className="px-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-bold transition-all text-sm uppercase tracking-widest whitespace-nowrap"
-                                >
-                                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Delete Record'}
-                                </button>
-                                <button 
-                                  onClick={() => setSelectedPastSession(null)}
-                                  className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-all text-sm uppercase tracking-widest whitespace-nowrap"
-                                >
-                                  Close View
-                                </button>
-                              </div>
+                      ) : (
+                        <>
+                          <div>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-200">Live Attendance Code</span>
+                            <h3 className="text-4xl sm:text-6xl font-black font-mono tracking-widest text-emerald-400 mt-1">{activeSession?.otp}</h3>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div className="bg-white/10 p-3 rounded-xl backdrop-blur-sm text-center">
+                              <span className="text-[10px] uppercase text-white/70 block font-bold">Accuracy</span>
+                              <span className="text-base sm:text-lg font-bold">{locationAccuracy ? `~${Math.round(locationAccuracy)}m` : '--'}</span>
                             </div>
-                          ) : (
-                            <>
-                              <div>
-                                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Entrance Code</p>
-                                <h3 className="text-5xl sm:text-7xl font-black tracking-tighter text-white font-mono">{activeSession?.otp}</h3>
-                              </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-                                  <MapPin className="w-4 h-4 text-emerald-400 mb-2" />
-                                  <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Precision</p>
-                                  <p className="text-lg font-black">{locationAccuracy ? `${Math.round(locationAccuracy)}m` : '--'}</p>
-                                </div>
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-                                  <Clock className="w-4 h-4 text-amber-400 mb-2" />
-                                  <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Ends In</p>
-                                  <p className="text-lg font-black font-mono">{activeSession ? format(new Date(activeSession.expires_at), 'HH:mm') : '--'}</p>
-                                </div>
-                                <div className="bg-indigo-500 rounded-2xl p-4 shadow-xl shadow-indigo-900/20 col-span-2 sm:col-span-1">
-                                  <Users className="w-4 h-4 text-white/80 mb-2" />
-                                  <div className="flex items-baseline gap-1">
-                                    <span className="text-2xl font-black">{attendance.length}</span>
-                                    <span className="text-[10px] text-white/60 font-black uppercase">Present</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                                <button
-                                  onClick={() => endSession(activeSession!.id)}
-                                  disabled={loading}
-                                  className={cn(
-                                    "flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-black transition-all text-[10px] sm:text-xs uppercase tracking-widest border-2",
-                                    "bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500 hover:text-white",
-                                    "dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(245,158,11,0.4)]"
-                                  )}
-                                >
-                                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Terminate'}
-                                </button>
-                                <button
-                                  onClick={() => deleteSession(activeSession!.id)}
-                                  disabled={loading}
-                                  className={cn(
-                                    "flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-black transition-all text-[10px] sm:text-xs uppercase tracking-widest border-2",
-                                    "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500 hover:text-white",
-                                    "dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40 dark:hover:bg-red-600 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]"
-                                  )}
-                                >
-                                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Delete Error'}
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="p-4 sm:p-8">
-                        <div className="flex items-center justify-between mb-6">
-                           <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Presence Log</h4>
-                           <button onClick={exportAttendance} disabled={attendance.length === 0} className="text-xs font-black uppercase text-indigo-600 flex items-center gap-2 hover:bg-indigo-50 px-3 py-2 rounded-lg transition-colors">
-                              <Download className="w-4 h-4" /> Export CSV
-                           </button>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
-                                <th className="pb-4 text-left">Student Name</th>
-                                <th className="pb-4 text-left">Enrollment</th>
-                                <th className="pb-4 text-left">Log Time</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {attendance.map((record) => (
-                                <tr key={record.id} className="border-b border-slate-50/50 hover:bg-slate-50/50 transition-colors">
-                                  <td className="py-4 font-bold text-slate-900 flex items-center gap-2">
-                                    {record.users.name}
-                                    {record.manual && (
-                                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-widest rounded-md">Manual</span>
-                                    )}
-                                  </td>
-                                  <td className="py-4 text-slate-500 font-mono text-xs">
-                                    {Array.isArray(record.users?.student_profiles)
-                                      ? record.users.student_profiles[0]?.enrollment_no
-                                      : (record.users?.student_profiles as any)?.enrollment_no || 'N/A'}
-                                  </td>
-                                  <td className="py-4 text-right text-slate-400 text-xs font-mono">{format(new Date(record.created_at), 'HH:mm:ss')}</td>
-                                </tr>
-                              ))}
-                              {attendance.length === 0 && (
-                                <tr>
-                                  <td colSpan={3} className="py-12 text-center text-slate-400 italic text-sm">Awaiting first check-in...</td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
+                            <div className="bg-white/10 p-3 rounded-xl backdrop-blur-sm text-center">
+                              <span className="text-[10px] uppercase text-white/70 block font-bold">Expires</span>
+                              <span className="text-base sm:text-lg font-bold font-mono">{activeSession ? format(new Date(activeSession.expires_at), 'HH:mm') : '--'}</span>
+                            </div>
+                            <div className="bg-emerald-600 p-3 rounded-xl text-center col-span-2 sm:col-span-1">
+                              <span className="text-[10px] uppercase text-white/80 block font-bold">Present</span>
+                              <span className="text-base sm:text-lg font-black">{attendance.length}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                            <button 
+                              onClick={() => endSession(activeSession!.id)} 
+                              className="btn-gradient-danger text-xs font-bold px-5 py-3 w-full sm:w-auto"
+                            >
+                              End Session
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  ) : (
-                    <div className="bg-white/50 border-2 border-dashed border-slate-200 rounded-2xl sm:rounded-[2rem] p-8 sm:p-16 text-center">
-                       <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                          <Users className="w-10 h-10 text-slate-300" />
-                       </div>
-                       <h3 className="text-xl font-black text-slate-900 mb-2">Ready to Start</h3>
-                       <p className="text-slate-500 text-sm max-w-sm mx-auto mb-8">Click start to generate a time-locked entrance code for this specific classroom.</p>
-                       <button onClick={createSession} className="btn-gradient px-10 py-3 shadow-xl shadow-indigo-200">Start Session Now</button>
-                    </div>
-                  )}
-                </section>
-                
-                {/* Secondary History Section in Session Tab */}
-                <section>
-                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                       <History className="w-4 h-4" /> Past Sessions
-                   </h3>
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                     {sessions.filter(s => !s.active || new Date(s.expires_at) <= new Date()).map(s => (
-                        <button 
-                          key={s.id} 
-                          onClick={() => setSelectedPastSession(s)}
-                          className={cn(
-                            "glass-card p-4 border text-left transition-all group",
-                            selectedPastSession?.id === s.id ? "border-[--color-primary] shadow-lg shadow-[--color-primary]/20 ring-1 ring-[--color-primary]" : "border-slate-100 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700"
-                          )}
-                        >
-                           <div className="flex items-center justify-between mb-2">
-                              <span className={cn(
-                                "text-[10px] font-black transition-colors",
-                                selectedPastSession?.id === s.id ? "text-[--color-primary]" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
-                              )}>
-                                {format(new Date(s.created_at), 'MMM dd, yyyy')}
-                              </span>
-                              <span className="text-xs font-black text-slate-900 font-mono dark:text-white">{s.otp}</span>
-                           </div>
-                           <p className="text-[10px] text-slate-500 uppercase tracking-widest flex justify-between items-center">
-                             <span>Legacy Record</span>
-                             <span className={cn(
-                               "opacity-0 text-[10px] font-bold group-hover:opacity-100 transition-opacity",
-                               selectedPastSession?.id === s.id ? "opacity-100 text-[--color-primary]" : "text-indigo-500"
-                             )}>
-                               View →
-                             </span>
-                           </p>
-                        </button>
-                     ))}
-                   </div>
-                </section>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="records-tab"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-6"
-              >
-                <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
-                  <div className="p-4 sm:p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                     <div>
-                        <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Attendance Register</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Tracking {filteredStudents.length} enrolled students</p>
-                     </div>
-                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto flex-wrap">
-                        <div className="relative group flex-1 sm:w-64">
-                           <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-600 transition-colors" />
-                           <input 
-                             type="text" 
-                             value={searchQuery}
-                             onChange={e => setSearchQuery(e.target.value)}
-                             placeholder="Search roster..." 
-                             className="pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-indigo-200 rounded-2xl text-xs sm:text-sm outline-none w-full transition-all"
-                           />
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                          <button 
-                           onClick={exportRegisterPDF} 
-                           disabled={loading || filteredStudents.length === 0}
-                           className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl hover:bg-black transition-all font-black text-xs shadow-md disabled:opacity-50"
-                          >
-                             <Download className="w-4 h-4" />
-                             <span>Download PDF</span>
-                          </button>
-                          <button 
-                           onClick={exportFullRegister} 
-                           disabled={loading || filteredStudents.length === 0}
-                           className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs"
-                           title="Export CSV"
-                          >
-                             <Folder className="w-4 h-4" />
-                             <span>CSV</span>
-                          </button>
-                          <button onClick={fetchAllStudentStats} className={cn("p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-indigo-50 transition-colors", loading && "animate-spin")}>
-                             <RefreshCw className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                          </button>
-                          <button 
-                           onClick={onLogout}
-                           className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-red-50 transition-all text-slate-500 hover:text-red-600 shadow-sm"
-                           title="Logout"
-                          >
-                             <LogOut className="w-4 h-4" />
-                          </button>
-                        </div>
-                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-slate-50/50">
-                          <th className="px-3 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] text-left">Student</th>
-                          <th className="px-3 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] text-left hidden sm:table-cell">Enrollment</th>
-                          <th className="px-3 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] text-center">Score</th>
-                          <th className="px-3 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {filteredStudents.map(student => (
-                          <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-3 sm:px-8 py-4 sm:py-6">
-                               <div className="text-slate-900 font-bold text-sm sm:text-base">{student.name}</div>
-                               <div className="text-[10px] text-slate-400 uppercase font-black mt-1">Sem {student.semester || 'N/A'} • {student.major_subject || 'General'}</div>
-                               <div className="text-[10px] text-slate-500 font-mono mt-0.5 sm:hidden">{student.enrollment_no}</div>
-                            </td>
-                            <td className="px-3 sm:px-8 py-4 sm:py-6 font-mono text-[13px] text-slate-500 hidden sm:table-cell">{student.enrollment_no}</td>
-                            <td className="px-3 sm:px-8 py-4 sm:py-6">
-                               <div className="flex flex-col items-center">
-                                  <span className={cn(
-                                    "text-base sm:text-lg font-black",
-                                    student.attendance_percentage >= 75 ? "text-emerald-500" : 
-                                    student.attendance_percentage >= 50 ? "text-amber-500" : "text-red-500"
-                                  )}>
-                                     {Math.round(student.attendance_percentage)}%
-                                  </span>
-                                  <div className="w-16 h-1.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
-                                     <div className={cn("h-full rounded-full transition-all duration-1000", student.attendance_percentage >= 75 ? "bg-emerald-500" : "bg-red-500")} style={{ width: `${student.attendance_percentage}%` }} />
-                                  </div>
-                               </div>
-                            </td>
-                            <td className="px-3 sm:px-8 py-4 sm:py-6 text-right">
-                               <div className="flex items-center justify-end gap-2">
-                                  {(activeSession || selectedPastSession) && !attendance.find(a => a.student_id === student.id) && (
-                                     <button 
-                                       onClick={() => manualMarkAttendance(student.id)}
-                                       className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200"
-                                     >
-                                        Mark Present
-                                     </button>
-                                  )}
-                                  <button onClick={() => handleResetDevice(student.id)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors" title="Reset Device Link">
-                                     <Smartphone className="w-5 h-5" />
-                                  </button>
-                                  <button onClick={() => setResettingUserId(student.id)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Access Recovery">
-                                     <Key className="w-5 h-5" />
-                                  </button>
-                               </div>
-                            </td>
+                  {/* Presence Log Table */}
+                  <div className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">
+                        Present Students ({attendance.length})
+                      </h4>
+                      <button 
+                        onClick={exportAttendance} 
+                        disabled={attendance.length === 0} 
+                        className="btn-outlined text-xs font-bold flex items-center gap-1.5 px-3 py-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Export CSV</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto touch-scroll">
+                      <table className="w-full text-left min-w-[320px]">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                            <th className="py-2.5 px-3 sm:px-4">Student</th>
+                            <th className="py-2.5 px-3 sm:px-4">Enrollment</th>
+                            <th className="py-2.5 px-3 sm:px-4 text-right">Time</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-xs sm:text-sm">
+                          {attendance.map(a => {
+                            const studentProfile = Array.isArray(a.users.student_profiles) ? a.users.student_profiles[0] : a.users.student_profiles;
+                            return (
+                              <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-750">
+                                <td className="py-3 px-3 sm:px-4 font-bold text-slate-900 dark:text-white">
+                                  {a.users.name}
+                                </td>
+                                <td className="py-3 px-3 sm:px-4 font-mono text-slate-600 dark:text-slate-300">
+                                  {studentProfile?.enrollment_no || 'N/A'}
+                                </td>
+                                <td className="py-3 px-3 sm:px-4 text-right text-slate-500 font-mono text-xs">
+                                  {format(new Date(a.created_at), 'hh:mm:ss a')}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {attendance.length === 0 && (
+                            <tr>
+                              <td colSpan={3} className="py-8 text-center text-slate-400 italic">
+                                Waiting for students to mark attendance...
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Past Sessions List */}
+              <div className="glass-card">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  <span>Session History ({sessions.length})</span>
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto touch-scroll">
+                  {sessions.map(s => (
+                    <div 
+                      key={s.id} 
+                      onClick={() => setSelectedPastSession(s)}
+                      className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-between cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-3 h-3 rounded-full", s.active ? "bg-emerald-500" : "bg-slate-400")} />
+                        <div>
+                          <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{format(new Date(s.created_at), 'MMM dd, yyyy - hh:mm a')}</p>
+                          <p className="text-[11px] text-slate-500 font-mono">Code: {s.otp}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400">View →</span>
+                    </div>
+                  ))}
+                  {sessions.length === 0 && (
+                    <p className="text-xs text-slate-400 italic text-center py-4">No sessions recorded yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Records Tab Content */}
+          {activeTab === 'records' && (
+            <div className="space-y-4 sm:space-y-6">
+              <div className="glass-card p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      placeholder="Search student or enrollment..."
+                      className="field-input pl-9"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button 
+                      onClick={exportFullRegister}
+                      disabled={allStudents.length === 0}
+                      className="btn-outlined text-xs font-bold flex items-center gap-1.5 px-3 py-2 flex-1 sm:flex-none"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export CSV</span>
+                    </button>
+                    <button 
+                      onClick={exportRegisterPDF}
+                      disabled={allStudents.length === 0}
+                      className="btn-gradient text-xs font-bold flex items-center gap-1.5 px-3 py-2 flex-1 sm:flex-none"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Export PDF</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Password Reset Modal (Redesigned) */}
-                <AnimatePresence>
-                  {resettingUserId && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setResettingUserId(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl" />
-                       <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="relative bg-white rounded-2xl sm:rounded-[2.5rem] shadow-2xl w-full max-w-sm p-6 sm:p-10">
-                          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-8 shadow-xl shadow-indigo-200">
-                             <Key className="w-8 h-8 text-white" />
-                          </div>
-                          <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Access Recovery</h3>
-                          <p className="text-slate-500 text-sm mb-8 leading-relaxed">Enter a new 6-digit security PIN for this student's account.</p>
-                          <div className="space-y-6">
-                             <input 
-                               type="password" 
-                               value={newPassword}
-                               onChange={e => setNewPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                               className="w-full text-center text-2xl sm:text-3xl font-black tracking-[0.3em] sm:tracking-[0.5em] py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-2xl outline-none"
-                               placeholder="******"
-                               maxLength={6}
-                             />
-                             <div className="flex gap-4">
-                                <button onClick={() => setResettingUserId(null)} className="flex-1 py-4 text-xs font-black uppercase text-slate-400 hover:text-slate-600">Cancel</button>
-                                <button onClick={() => handleResetPassword(resettingUserId)} disabled={loading || !/^\d{6}$/.test(newPassword)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-200 disabled:opacity-50">Confirm</button>
-                             </div>
-                          </div>
-                       </motion.div>
+                <div className="overflow-x-auto touch-scroll">
+                  <table className="w-full text-left min-w-[340px]">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                        <th className="py-3 px-3 sm:px-4">Student</th>
+                        <th className="py-3 px-3 sm:px-4 text-center">Score</th>
+                        <th className="py-3 px-3 sm:px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-xs sm:text-sm">
+                      {filteredStudents.map(student => (
+                        <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-750">
+                          <td className="py-3 px-3 sm:px-4">
+                            <div className="font-bold text-slate-900 dark:text-white">{student.name}</div>
+                            <div className="text-[11px] text-slate-500 font-mono mt-0.5">{student.enrollment_no}</div>
+                          </td>
+                          <td className="py-3 px-3 sm:px-4 text-center">
+                            <span className={cn(
+                              "font-bold text-sm",
+                              student.attendance_percentage >= 75 ? "text-emerald-600 dark:text-emerald-400" :
+                              student.attendance_percentage >= 50 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
+                            )}>
+                              {Math.round(student.attendance_percentage)}%
+                            </span>
+                            <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mt-1 overflow-hidden">
+                              <div 
+                                className={cn("h-full rounded-full", student.attendance_percentage >= 75 ? "bg-emerald-500" : "bg-rose-500")}
+                                style={{ width: `${student.attendance_percentage}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 sm:px-4 text-right">
+                            <div className="flex items-center justify-end gap-1 sm:gap-2">
+                              {(activeSession || selectedPastSession) && !attendance.find(a => a.student_id === student.id) && (
+                                <button 
+                                  onClick={() => manualMarkAttendance(student.id)}
+                                  className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider touch-target"
+                                >
+                                  Mark Present
+                                </button>
+                              )}
+                              <button 
+                                onClick={() => handleResetDevice(student.id)} 
+                                className="p-2 text-slate-400 hover:text-amber-600 rounded-lg touch-target" 
+                                title="Reset Device Link"
+                              >
+                                <Smartphone className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => setResettingUserId(student.id)} 
+                                className="p-2 text-slate-400 hover:text-blue-600 rounded-lg touch-target" 
+                                title="Reset PIN"
+                              >
+                                <Key className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredStudents.length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="py-8 text-center text-slate-400 italic">
+                            No students enrolled in this class yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Password Reset Dialog */}
+              {resettingUserId && (
+                <div className="modal-overlay" onClick={() => setResettingUserId(null)}>
+                  <div className="modal" onClick={e => e.stopPropagation()}>
+                    <div className="sheet-drag-handle sm:hidden" />
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-[--color-text-primary]">Reset Student PIN</h3>
+                      <button onClick={() => setResettingUserId(null)} className="p-1 text-slate-400 hover:text-slate-600 touch-target">
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    <p className="text-xs text-[--color-text-secondary] mb-4">
+                      Set a new 6-digit numeric security PIN for this student account.
+                    </p>
+                    <div className="space-y-4">
+                      <input 
+                        type="password" 
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="field-input text-center text-2xl font-mono tracking-[0.3em]"
+                        placeholder="••••••"
+                        inputMode="numeric"
+                        maxLength={6}
+                        autoFocus
+                      />
+                      <div className="flex gap-2 pt-2">
+                        <button 
+                          onClick={() => handleResetPassword(resettingUserId)} 
+                          disabled={loading || !/^\d{6}$/.test(newPassword)} 
+                          className="btn-gradient flex-1 font-bold"
+                        >
+                          Confirm Reset
+                        </button>
+                        <button 
+                          onClick={() => setResettingUserId(null)} 
+                          className="btn-outlined px-4"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
       )}
     </div>
   );
 }
-

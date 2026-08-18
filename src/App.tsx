@@ -6,13 +6,14 @@
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { supabase } from './supabase';
-import { LogIn, LogOut, User as UserIcon, ShieldCheck, GraduationCap, Loader2, AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { LogIn, LogOut, ShieldCheck, GraduationCap, Loader2, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { getDeviceFingerprint } from './lib/device';
 import { authFetch } from './lib/authFetch';
 import { subscribeToToasts, requestAllAppPermissions, AppToast } from './lib/notifications';
 import { syncOfflineQueue } from './lib/offlineQueue';
+import { useBackButton } from './lib/backButton';
 import { Preferences } from '@capacitor/preferences';
 import RoleSelection from './components/RoleSelection';
 import StudentLogin from './components/StudentLogin';
@@ -20,8 +21,8 @@ import TeacherLogin from './components/TeacherLogin';
 import ConsentModal from './components/ConsentModal';
 import ThemeToggle from './components/ThemeToggle';
 import AboutPage from './components/AboutPage';
-import { Analytics } from "@vercel/analytics/react"
-import { SpeedInsights } from "@vercel/speed-insights/react"
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Lazy load heavy dashboard components for performance optimization
 const TeacherDashboard = lazy(() => import('./components/TeacherDashboard'));
@@ -117,6 +118,35 @@ export default function App() {
       window.removeEventListener('online', handleOnline);
     };
   }, []);
+
+  // Android Back Button Handlers for Authentication & Top-Level Screens
+  useBackButton(() => {
+    if (showAbout) {
+      setShowAbout(false);
+      return true;
+    }
+    return false;
+  }, showAbout, 60);
+
+  useBackButton(() => {
+    if (!session && authMode !== 'login') {
+      setAuthMode('login');
+      setError(null);
+      setMessage(null);
+      return true;
+    }
+    return false;
+  }, !session && authMode !== 'login', 40);
+
+  useBackButton(() => {
+    if (!session && selectedRole !== null && authMode === 'login' && !showAbout) {
+      setSelectedRole(null);
+      setError(null);
+      setMessage(null);
+      return true;
+    }
+    return false;
+  }, !session && selectedRole !== null && authMode === 'login' && !showAbout, 20);
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
@@ -359,7 +389,7 @@ export default function App() {
 
   // Toast popup renderer helper
   const renderToastContainer = () => (
-    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] w-full max-w-md px-4 pointer-events-none flex flex-col gap-2">
+    <div className="fixed top-2 sm:top-4 left-1/2 -translate-x-1/2 z-[9999] w-full max-w-md px-3 sm:px-4 pointer-events-none flex flex-col gap-2 safe-area-pt">
       <AnimatePresence>
         {toasts.map(toast => (
           <motion.div
@@ -368,20 +398,21 @@ export default function App() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             className={cn(
-              "pointer-events-auto p-4 rounded-xl border shadow-lg flex items-start gap-3 bg-white dark:bg-slate-800",
+              "pointer-events-auto p-3.5 sm:p-4 rounded-xl border shadow-lg flex items-start gap-3 bg-white dark:bg-slate-800",
               toast.type === 'success' && "border-emerald-500 text-emerald-900 dark:text-emerald-100",
               toast.type === 'error' && "border-rose-500 text-rose-900 dark:text-rose-100",
               toast.type === 'warning' && "border-amber-500 text-amber-900 dark:text-amber-100",
               toast.type === 'info' && "border-blue-500 text-blue-900 dark:text-blue-100"
             )}
           >
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h4 className="text-xs font-bold uppercase tracking-wider mb-0.5">{toast.title}</h4>
               <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">{toast.message}</p>
             </div>
             <button
               onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold p-1 touch-target"
+              aria-label="Dismiss notification"
             >
               ✕
             </button>
@@ -396,7 +427,7 @@ export default function App() {
       <div className="page animated-bg">
         <div className="dot-grid" />
         <div className="z-10 flex items-center justify-center min-h-screen">
-          <Loader2 className="w-8 h-8 text-[--color-primary] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[--color-primary] dark:text-blue-500 animate-spin" />
         </div>
       </div>
     );
@@ -417,7 +448,7 @@ export default function App() {
           {/* Loading State */}
           {loading && (
             <div className="z-10 flex items-center justify-center min-h-screen">
-              <Loader2 className="w-8 h-8 text-[--color-primary] animate-spin" />
+              <Loader2 className="w-8 h-8 text-[--color-primary] dark:text-blue-500 animate-spin" />
             </div>
           )}
 
@@ -427,22 +458,24 @@ export default function App() {
           )}
 
           {/* Role Selection Screen */}
-          {!loading && !selectedRole && !showAbout && <RoleSelection
-            onSelectRole={(role) => {
-              setSelectedRole(role);
-              setLoginType(role);
-              setAuthMode('login');
-              setError(null);
-              setMessage(null);
-            }}
-            onShowAbout={() => setShowAbout(true)}
-            darkMode={darkMode}
-            toggleDarkMode={toggleDarkMode}
-          />}
+          {!loading && !selectedRole && !showAbout && (
+            <RoleSelection
+              onSelectRole={(role) => {
+                setSelectedRole(role);
+                setLoginType(role);
+                setAuthMode('login');
+                setError(null);
+                setMessage(null);
+              }}
+              onShowAbout={() => setShowAbout(true)}
+              darkMode={darkMode}
+              toggleDarkMode={toggleDarkMode}
+            />
+          )}
 
           {/* Login Screens */}
           {!loading && selectedRole && (
-            <div className="container-app flex flex-col items-center justify-center min-h-screen px-3 sm:px-6">
+            <div className="container-app flex flex-col items-center justify-center min-h-screen px-3 sm:px-6 py-6 safe-area-pt safe-area-pb">
               {authMode === 'login' && selectedRole === 'student' && (
                 <StudentLogin
                   enrollmentNo={enrollmentNo}
@@ -491,22 +524,26 @@ export default function App() {
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="glass-card w-full max-w-sm mx-2 sm:mx-0"
+                  transition={{ duration: 0.4 }}
+                  className="glass-card w-full max-w-md mx-auto"
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-[--color-text-primary]">Create Account</h1>
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h1 className="text-xl sm:text-2xl font-bold text-[--color-text-primary]">Create Account</h1>
+                      <p className="text-xs text-[--color-text-secondary] mt-0.5">Student Registration</p>
+                    </div>
                     <motion.button
                       onClick={() => {
                         setAuthMode('login');
                         setMessage(null);
                         setError(null);
                       }}
-                      whileHover={{ scale: 1.1 }}
+                      whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="p-2 hover:bg-white/5 rounded-lg transition-all duration-300"
+                      className="p-2.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-white transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title="Back to login"
                     >
-                      <LogOut className="w-5 h-5 text-[--color-text-secondary]" />
+                      <ArrowLeft className="w-5 h-5 text-[--color-text-secondary]" />
                     </motion.button>
                   </div>
 
@@ -521,11 +558,11 @@ export default function App() {
                     </motion.div>
                   )}
 
-                  <form onSubmit={handleRegister} className="space-y-3 max-h-[65vh] overflow-y-auto pr-1 -mr-1">
+                  <form onSubmit={handleRegister} className="space-y-3.5 max-h-[70vh] overflow-y-auto pr-1 -mr-1 touch-scroll">
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
+                      transition={{ delay: 0.05 }}
                       className="field-group"
                     >
                       <label className="field-label">Full Name</label>
@@ -541,7 +578,7 @@ export default function App() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 }}
+                      transition={{ delay: 0.1 }}
                       className="field-group"
                     >
                       <label className="field-label">Enrollment No (6 Digits)</label>
@@ -549,16 +586,17 @@ export default function App() {
                         type="text"
                         value={enrollmentNo}
                         onChange={(e) => setEnrollmentNo(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="field-input"
+                        className="field-input font-mono"
                         placeholder="123456"
                         maxLength={6}
+                        inputMode="numeric"
                         required
                       />
                     </motion.div>
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
+                      transition={{ delay: 0.15 }}
                       className="field-group"
                     >
                       <label className="field-label">Exam Roll No (11 Characters)</label>
@@ -566,76 +604,68 @@ export default function App() {
                         type="text"
                         value={examRollNo}
                         onChange={(e) => setExamRollNo(e.target.value.toUpperCase().slice(0, 11))}
-                        className="field-input"
+                        className="field-input font-mono uppercase"
                         placeholder="24220MAT123"
                         maxLength={11}
+                        autoCapitalize="characters"
                         required
                       />
                     </motion.div>
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.25 }}
+                      transition={{ delay: 0.2 }}
                       className="grid grid-cols-2 gap-3"
                     >
                       <div className="field-group">
                         <label className="field-label">Course</label>
-                        <select
+                        <input
+                          type="text"
                           value={course}
                           onChange={(e) => setCourse(e.target.value)}
-                          className="field-input bg-white/[0.07]"
+                          className="field-input"
+                          placeholder="B.Sc"
                           required
-                        >
-                          <option value="">Select</option>
-                          <option value="BSc Hons">BSc Hons</option>
-                          <option value="MSc">MSc</option>
-                          <option value="B.Tech">B.Tech</option>
-                          <option value="M.Tech">M.Tech</option>
-                        </select>
+                        />
                       </div>
                       <div className="field-group">
                         <label className="field-label">Semester</label>
                         <select
                           value={semester}
                           onChange={(e) => setSemester(e.target.value)}
-                          className="field-input bg-white/[0.07]"
+                          className="field-input"
                           required
                         >
                           <option value="">Select</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map(s => {
-                            let suffix = 'th';
-                            if (s === 1) suffix = 'st';
-                            else if (s === 2) suffix = 'nd';
-                            else if (s === 3) suffix = 'rd';
-                            return <option key={s} value={`${s}`}>{s}{suffix}</option>
-                          })}
+                          <option value="I">I</option>
+                          <option value="II">II</option>
+                          <option value="III">III</option>
+                          <option value="IV">IV</option>
+                          <option value="V">V</option>
+                          <option value="VI">VI</option>
                         </select>
                       </div>
                     </motion.div>
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
+                      transition={{ delay: 0.25 }}
                       className="field-group"
                     >
                       <label className="field-label">Major Subject</label>
-                      <select
+                      <input
+                        type="text"
                         value={majorSubject}
                         onChange={(e) => setMajorSubject(e.target.value)}
-                        className="field-input bg-white/[0.07]"
+                        className="field-input"
+                        placeholder="Mathematics"
                         required
-                      >
-                        <option value="">Select</option>
-                        <option value="Computer Science">Computer Science</option>
-                        <option value="Mathematics">Mathematics</option>
-                        <option value="Physics">Physics</option>
-                        <option value="Chemistry">Chemistry</option>
-                      </select>
+                      />
                     </motion.div>
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.35 }}
+                      transition={{ delay: 0.3 }}
                       className="grid grid-cols-2 gap-3"
                     >
                       <div className="field-group">
@@ -643,7 +673,7 @@ export default function App() {
                         <select
                           value={section}
                           onChange={(e) => setSection(e.target.value)}
-                          className="field-input bg-white/[0.07]"
+                          className="field-input"
                           required
                         >
                           <option value="">Select</option>
@@ -670,7 +700,7 @@ export default function App() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
+                      transition={{ delay: 0.35 }}
                       className="field-group"
                     >
                       <label className="field-label">Password (6-digit PIN)</label>
@@ -678,17 +708,18 @@ export default function App() {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="field-input"
+                        className="field-input font-mono"
                         placeholder="••••••"
                         pattern="\d{6}"
                         maxLength={6}
+                        inputMode="numeric"
                         required
                       />
                     </motion.div>
                     <motion.button
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.45 }}
+                      transition={{ delay: 0.4 }}
                       type="submit"
                       disabled={loading}
                       className="btn-gradient mt-4 w-full"
@@ -705,8 +736,8 @@ export default function App() {
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="glass-card w-full max-w-sm mx-2 sm:mx-0"
+                  transition={{ duration: 0.4 }}
+                  className="glass-card w-full max-w-sm mx-auto"
                 >
                   <div className="space-y-6">
                     <div className="glass-card--warning rounded-[14px]">
@@ -764,10 +795,10 @@ export default function App() {
       {renderToastContainer()}
       <div className="page animated-bg">
         <div className="dot-grid" />
-        {/* Only show global header for students or logged-out users */}
+        {/* Global Header */}
         {(!profile || profile.role === 'student') && (
-          <header className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm sticky top-2 z-50 mx-2 sm:mx-4 mt-2 rounded-xl">
-            <div className="px-5 h-14 flex items-center justify-between">
+          <header className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-50 mx-2 sm:mx-4 mt-2 rounded-xl safe-area-pt">
+            <div className="px-4 sm:px-5 h-14 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-[#002147] dark:bg-blue-600 flex items-center justify-center text-white">
                   <ShieldCheck className="w-4 h-4" />
@@ -780,8 +811,9 @@ export default function App() {
                 {session && (
                   <button
                     onClick={handleLogout}
-                    className="p-2 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors"
+                    className="p-2 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors touch-target"
                     title="Logout"
+                    aria-label="Logout"
                   >
                     <LogOut className="w-5 h-5" />
                   </button>
@@ -792,13 +824,13 @@ export default function App() {
         )}
 
         <main className={cn(
-          "container-app max-w-7xl mx-auto relative py-6 sm:py-8 safe-area-bottom",
+          "container-app max-w-7xl mx-auto relative py-4 sm:py-8 safe-area-bottom",
           (profile?.role === 'admin' || profile?.role === 'teacher') ? "px-2 sm:px-4" : "px-2 sm:px-0"
         )}>
           <Suspense fallback={
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400">
-              <Loader2 className="w-10 h-10 animate-spin mb-4 text-indigo-600" />
-              <p className="text-sm font-black uppercase tracking-widest animate-pulse">Initializing Module...</p>
+              <Loader2 className="w-10 h-10 animate-spin mb-4 text-indigo-600 dark:text-blue-500" />
+              <p className="text-xs sm:text-sm font-bold uppercase tracking-widest animate-pulse">Initializing Module...</p>
             </div>
           }>
             {profile?.role === 'admin' ? (

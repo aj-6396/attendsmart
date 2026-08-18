@@ -8,13 +8,14 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap } from 'lucide-react';
+import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap, X } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { getDeviceFingerprint } from '../lib/device';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 import { notifySessionStarted, notifyAttendanceMarked, notifyAbsentInClass, schedule5PMAttendanceNotification } from '../lib/notifications';
-import { queueOfflineAttendance, syncOfflineQueue, getOfflineQueueCount } from '../lib/offlineQueue';
+import { queueOfflineAttendance, syncOfflineQueue } from '../lib/offlineQueue';
+import { useBackButton } from '../lib/backButton';
 
 interface AttendanceRecord {
   id: string;
@@ -43,6 +44,24 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
   const [locationPermission, setLocationPermission] = useState<string | null>(null);
   const [showLowAttendanceToast, setShowLowAttendanceToast] = useState(false);
   const [toastDismissed, setToastDismissed] = useState(false);
+
+  // Android Back Button handlers
+  useBackButton(() => {
+    if (showJoinClass) {
+      setShowJoinClass(false);
+      return true;
+    }
+    return false;
+  }, showJoinClass, 50);
+
+  useBackButton(() => {
+    if (activeClass !== null) {
+      setActiveClass(null);
+      setStatus({ type: null, message: '' });
+      return true;
+    }
+    return false;
+  }, activeClass !== null && !showJoinClass, 30);
 
   useEffect(() => {
     // Check initial location permission status
@@ -199,16 +218,15 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
 
         if (countError) throw countError;
 
-        const attended = records?.length || 0;
+        const attended = records ? records.length : 0;
         const total = count || 0;
-        
-        setHistory(records as any || []);
-        setStats({
-          attended,
-          total,
-          percentage: total > 0 ? Math.round((attended / total) * 100) : 0
-        });
-        if (total > 0 && Math.round((attended / total) * 100) < 75 && !toastDismissed) {
+        const percentage = total > 0 ? Math.round((attended / total) * 100) : 0;
+
+        setHistory((records as any) || []);
+        setStats({ attended, total, percentage });
+
+        // Show low attendance alert if below 75%
+        if (total > 0 && percentage < 75) {
           setShowLowAttendanceToast(true);
         }
       } catch (err) {
@@ -336,64 +354,108 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
     }
   };
 
-
   if (!activeClass) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5 sm:space-y-6">
         <AnimatePresence>
           {status.type && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className={status.type === 'success' ? "alert alert--success" : "alert alert--error"}>
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className={status.type === 'success' ? "alert alert--success" : "alert alert--error"}>
               <p className="text-sm font-medium">{status.message}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold flex items-center gap-2 text-[--color-text-primary]">
-            <Folder className="w-6 h-6 text-[--color-primary]" />
-            My Enrolled Classes
-          </h2>
-          <button onClick={() => setShowJoinClass(true)} className="btn-gradient px-4 py-2 flex items-center gap-2 w-auto h-10 text-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-[--color-text-primary] tracking-tight">
+              <Folder className="w-5 h-5 sm:w-6 sm:h-6 text-[--color-primary] dark:text-blue-500 shrink-0" />
+              <span>Enrolled Classes</span>
+            </h2>
+            <p className="text-xs text-[--color-text-secondary] mt-0.5">Select a class to mark attendance</p>
+          </div>
+          <button 
+            onClick={() => setShowJoinClass(true)} 
+            className="btn-gradient px-4 py-2.5 flex items-center gap-1.5 text-xs sm:text-sm font-bold shrink-0"
+          >
             <Plus className="w-4 h-4" />
-            Join Class
+            <span>Join Class</span>
           </button>
         </div>
 
+        {/* Join Class Dialog / Mobile Bottom Sheet */}
         {showJoinClass && (
-          <div className="glass-card p-4 sm:p-6">
-            <h3 className="font-bold mb-3 text-[--color-text-primary]">Enter Class Code</h3>
-            <form onSubmit={handleJoinClass} className="flex flex-col sm:flex-row gap-3">
-              <input 
-                type="text" 
-                value={joinCode} 
-                onChange={e => setJoinCode(e.target.value.toUpperCase())} 
-                placeholder="e.g. A1B2C3" 
-                className="field-input w-full sm:flex-1 uppercase tracking-widest font-mono text-center sm:text-left" 
-                maxLength={6}
-                required 
-              />
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button disabled={loading} type="submit" className="btn-gradient flex-1 sm:w-32 h-11 text-sm font-bold">
-                  {loading ? <Loader2 className="animate-spin mx-auto w-5 h-5"/> : 'Join'}
+          <div className="modal-overlay" onClick={() => setShowJoinClass(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="sheet-drag-handle sm:hidden" />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg text-[--color-text-primary]">Enter Class Code</h3>
+                <button
+                  onClick={() => setShowJoinClass(false)}
+                  className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg touch-target"
+                >
+                  <X className="w-5 h-5" />
                 </button>
-                <button type="button" onClick={() => setShowJoinClass(false)} className="px-4 h-11 border rounded-xl hover:bg-slate-50 text-[--color-text-secondary] text-sm font-semibold">Cancel</button>
               </div>
-            </form>
+              <p className="text-xs text-[--color-text-secondary] mb-4">
+                Ask your instructor for the 6-character unique join code.
+              </p>
+              <form onSubmit={handleJoinClass} className="space-y-4">
+                <input 
+                  type="text" 
+                  value={joinCode} 
+                  onChange={e => setJoinCode(e.target.value.toUpperCase())} 
+                  placeholder="e.g. A1B2C3" 
+                  className="field-input uppercase tracking-[0.2em] font-mono text-center text-lg font-bold" 
+                  maxLength={6}
+                  autoFocus
+                  required 
+                />
+                <div className="flex items-center gap-2 pt-2">
+                  <button 
+                    disabled={loading || !joinCode} 
+                    type="submit" 
+                    className="btn-gradient flex-1 font-bold"
+                  >
+                    {loading ? <Loader2 className="animate-spin mx-auto w-5 h-5"/> : 'Join Class'}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowJoinClass(false)} 
+                    className="btn-outlined px-4"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {classes.map(c => (
-             <div key={c.id} onClick={() => setActiveClass(c)} className="glass-card p-6 cursor-pointer hover:border-[--color-primary]/50 transition-all hover:shadow-xl group">
-               <div className="w-12 h-12 rounded-xl bg-[--color-primary]/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Folder className="w-6 h-6 text-[--color-primary]" />
+             <motion.div 
+               key={c.id} 
+               whileTap={{ scale: 0.98 }}
+               onClick={() => setActiveClass(c)} 
+               className="glass-card p-5 sm:p-6 cursor-pointer hover:border-blue-500/50 transition-all hover:shadow-md group active:scale-[0.98]"
+             >
+               <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-blue-100 dark:border-blue-900/40">
+                  <Folder className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                </div>
-               <h3 className="text-lg font-bold text-[--color-text-primary] mb-2">{c.name}</h3>
-             </div>
+               <h3 className="text-lg font-bold text-[--color-text-primary] mb-1">{c.name}</h3>
+               <p className="text-xs text-[--color-text-secondary] flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                 <span>Tap to open dashboard</span>
+                 <span className="font-bold text-blue-600 dark:text-blue-400">→</span>
+               </p>
+             </motion.div>
           ))}
           {classes.length === 0 && !showJoinClass && (
-             <div className="col-span-full py-12 text-center text-[--color-text-secondary] italic">
-               You haven't joined any classes yet. Click 'Join Class' to enter a code.
+             <div className="col-span-full py-16 text-center text-[--color-text-secondary] italic glass-card">
+               <Folder className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+               <p className="text-sm">You haven't joined any classes yet.</p>
+               <button onClick={() => setShowJoinClass(true)} className="mt-3 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                 + Join your first class
+               </button>
              </div>
           )}
         </div>
@@ -403,43 +465,30 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
 
   return (
     <>
-      {/* Low Attendance Toast */}
       <AnimatePresence>
-        {showLowAttendanceToast && stats.percentage < 75 && (
+        {showLowAttendanceToast && !toastDismissed && (
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-6 left-4 right-4 z-[9999] md:left-auto md:right-6 md:w-96"
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 pointer-events-auto safe-area-pb"
           >
-            <div className="bg-gradient-to-r from-red-600 to-amber-600 p-[1px] rounded-2xl shadow-2xl">
-              <div className="bg-white rounded-[15px] p-4 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-black text-slate-900 leading-tight">Low Attendance Alert</h4>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Your attendance is currently <span className="text-red-600 font-bold">{stats.percentage}%</span>. 
-                    Please attend more classes to maintain the 75% requirement.
-                  </p>
-                  <div className="flex items-center gap-3 mt-3">
-                    <button 
-                      onClick={() => {
-                        setShowLowAttendanceToast(false);
-                        setToastDismissed(true);
-                      }}
-                      className="text-[10px] font-black uppercase tracking-widest text-white bg-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-                    >
-                      Got it
-                    </button>
-                    <button 
-                       onClick={() => setShowLowAttendanceToast(false)}
-                       className="text-[10px] font-bold text-slate-400 hover:text-slate-600"
-                    >
-                      Remind later
-                    </button>
-                  </div>
+            <div className="bg-red-500 text-white p-4 rounded-2xl shadow-2xl flex items-start gap-3 border border-red-400">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <AlertCircle className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-sm leading-tight">Low Attendance Warning!</h4>
+                <p className="text-xs text-red-100 mt-1 leading-relaxed">
+                  Your overall attendance in <span className="font-bold underline">{activeClass.name}</span> is currently <span className="font-bold">{stats.percentage}%</span> (Required: 75%).
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    onClick={() => setToastDismissed(true)}
+                    className="text-xs font-bold bg-white text-red-600 px-3 py-1.5 rounded-lg shadow-sm active:scale-95 transition-all touch-target"
+                  >
+                    I Understand
+                  </button>
                 </div>
               </div>
             </div>
@@ -447,321 +496,308 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
-      <div className="lg:col-span-3 mb-[-1rem]">
-         <div className="flex items-center justify-between bg-white px-4 sm:px-6 py-4 rounded-2xl shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700">
-           <div className="flex items-center gap-3 min-w-0">
-             <button onClick={() => { setActiveClass(null); setStatus({ type: null, message: '' }); }} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-slate-500 hover:text-indigo-600 shrink-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Class Top Nav */}
+        <div className="lg:col-span-3">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-3.5 sm:px-6 py-3.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3 min-w-0">
+              <button 
+                onClick={() => { setActiveClass(null); setStatus({ type: null, message: '' }); }} 
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 hover:text-indigo-600 dark:hover:text-white shrink-0 touch-target"
+                title="Back to all classes"
+                aria-label="Back to classes"
+              >
                 <ArrowLeftIcon className="w-5 h-5" />
-             </button>
-             <div className="min-w-0 flex-1">
-               <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">{activeClass.name}</h2>
-               <p className="text-xs text-slate-500 dark:text-slate-400">Class Dashboard</p>
-             </div>
-           </div>
-         </div>
-      </div>
-
-      <div className="lg:col-span-2 space-y-4 sm:space-y-8">
-        <section className="glass-card">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-[--color-text-primary]">{profile.name}</h1>
-              <p className="text-[--color-text-secondary] text-sm flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
-                <GraduationCap className="w-4 h-4 shrink-0" />
-                <span>{profile.course} • {profile.semester} Sem • {profile.major_subject}</span>
-                <span className="hidden sm:inline">• Batch {profile.batch}</span>
-              </p>
-            </div>
-            {/* Student Detail Box */}
-            <div className="glass-card--primary p-3 sm:p-4 min-w-0 sm:min-w-[200px]">
-              <h3 className="text-sm font-semibold text-[--color-text-secondary] mb-3 text-center">Student Details</h3>
-              <div className="space-y-3">
-                <div className="text-center">
-                  <p className="text-xs text-[--color-text-secondary] font-medium uppercase tracking-wide">Enrollment No</p>
-                  <p className="text-lg font-mono font-bold text-[--color-text-primary] mt-1">{profile.enrollment_no}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-[--color-text-secondary] font-medium uppercase tracking-wide">Exam Roll No</p>
-                  <p className="text-lg font-mono font-bold text-[--color-text-primary] mt-1">{profile.exam_roll_no || 'N/A'}</p>
-                </div>
+              </button>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white truncate">{activeClass.name}</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Class Attendance & History</p>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section>
-          <div className="glass-card overflow-hidden">
-            <div className="bg-gradient-to-r from-[#002147] to-[#004080] dark:from-[#39ff14] dark:to-[#00ff41] p-4 sm:p-6 text-white dark:text-black">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <ShieldCheck className="w-6 h-6" />
-                Mark Attendance
-              </h2>
-              <p className="text-black/80 text-sm mt-1">Enter the 4-digit OTP provided by your teacher.</p>
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          {/* Profile Details Card */}
+          <section className="glass-card">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-[--color-text-primary] truncate">{profile.name}</h1>
+                <p className="text-[--color-text-secondary] text-xs sm:text-sm flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
+                  <GraduationCap className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                  <span>{profile.course} • Sem {profile.semester} • {profile.major_subject}</span>
+                  <span className="hidden sm:inline">• Batch {profile.batch}</span>
+                </p>
+              </div>
+              <div className="glass-card--primary p-3 sm:p-4 rounded-xl min-w-0 sm:min-w-[180px]">
+                <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 text-center">
+                  <div>
+                    <p className="text-[10px] text-[--color-text-secondary] font-bold uppercase tracking-wider">Enrollment No</p>
+                    <p className="text-sm sm:text-base font-mono font-bold text-[--color-text-primary] mt-0.5">{profile.enrollment_no}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-[--color-text-secondary] font-bold uppercase tracking-wider">Exam Roll</p>
+                    <p className="text-sm sm:text-base font-mono font-bold text-[--color-text-primary] mt-0.5">{profile.exam_roll_no || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <div className="p-4 sm:p-8">
-              {locationPermission === 'denied' && (
-                <div className="alert alert--error mb-6">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-sm font-bold">Location Access Denied</h4>
-                    <p className="text-xs mt-1">
-                      You have denied location access. Please enable location services for this app in your device settings or browser settings to mark attendance.
-                    </p>
-                  </div>
-                </div>
-              )}
+          </section>
 
-              {locationPermission === 'prompt' && (
-                <div className="alert alert--warning mb-6">
-                  <MapPin className="w-5 h-5 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-sm font-bold">Location Access Required</h4>
-                    <p className="text-xs mt-1 mb-2">
-                      We need your location to verify you are in the classroom.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.geolocation.getCurrentPosition(
-                          () => setLocationPermission('granted'),
-                          (err) => {
-                            console.error("Geolocation error:", err);
-                            if (err.code === err.PERMISSION_DENIED) {
-                              setLocationPermission('denied');
-                            }
-                          },
-                          { enableHighAccuracy: true }
-                        );
-                      }}
-                      className="text-xs font-bold bg-[--color-warning]/30 text-[--color-warning] px-3 py-1.5 rounded-lg hover:bg-[--color-warning]/50 transition-colors"
-                    >
-                      Grant Permission
-                    </button>
+          {/* Mark Attendance Card */}
+          <section>
+            <div className="glass-card overflow-hidden p-0">
+              <div className="bg-[#002147] dark:bg-blue-600 p-4 sm:p-6 text-white">
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <ShieldCheck className="w-6 h-6 shrink-0" />
+                  <span>Mark Attendance</span>
+                </h2>
+                <p className="text-blue-100 text-xs sm:text-sm mt-1">Enter the 4-digit OTP provided by your teacher in class.</p>
+              </div>
+              
+              <div className="p-4 sm:p-8">
+                {locationPermission === 'denied' && (
+                  <div className="alert alert--error mb-5">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-bold">Location Access Denied</h4>
+                      <p className="text-xs mt-1 leading-relaxed">
+                        Location services are required to verify presence in the classroom. Please enable location permissions for this app in device settings.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <form onSubmit={markAttendance} className="max-w-sm mx-auto space-y-6">
-                <div className="field-group">
-                  <label className="field-label text-center uppercase tracking-wider block text-[--color-text-secondary]">
-                    Enter 4-Digit OTP
-                  </label>
-                  <div className="flex justify-center gap-4">
+                {locationPermission === 'prompt' && (
+                  <div className="alert alert--warning mb-5">
+                    <MapPin className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-bold">Location Permission Needed</h4>
+                      <p className="text-xs mt-1 mb-2 leading-relaxed">
+                        ClassMark uses secure GPS verification to confirm attendance.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.geolocation.getCurrentPosition(
+                            () => setLocationPermission('granted'),
+                            (err) => {
+                              console.error("Geolocation error:", err);
+                              if (err.code === err.PERMISSION_DENIED) {
+                                setLocationPermission('denied');
+                              }
+                            },
+                            { enableHighAccuracy: true }
+                          );
+                        }}
+                        className="text-xs font-bold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity touch-target"
+                      >
+                        Enable Location
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={markAttendance} className="max-w-xs sm:max-w-sm mx-auto space-y-5">
+                  <div className="field-group text-center">
+                    <label className="field-label uppercase tracking-wider block text-[--color-text-secondary] mb-1">
+                      Enter 4-Digit OTP
+                    </label>
                     <input
                       type="text"
                       maxLength={4}
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                      placeholder="0000"
-                      className="field-input text-center text-3xl sm:text-4xl font-black tracking-[0.3em] sm:tracking-[0.5em] w-full"
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="••••"
+                      inputMode="numeric"
+                      className="field-input text-center text-2xl sm:text-4xl font-black font-mono tracking-[0.25em] sm:tracking-[0.4em] w-full py-3 sm:py-4"
+                      autoComplete="one-time-code"
+                      required
                     />
                   </div>
-                </div>
 
-                <AnimatePresence>
-                  {status.type && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className={cn(
-                        status.type === 'success' ? "alert alert--success" : status.type === 'warning' ? "alert alert--warning" : "alert alert--error"
-                      )}
-                    >
-                      {status.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
-                      <p className="text-sm font-medium">{status.message}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <AnimatePresence>
+                    {status.type && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className={cn(
+                          status.type === 'success' ? "alert alert--success" : status.type === 'warning' ? "alert alert--warning" : "alert alert--error"
+                        )}
+                      >
+                        {status.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+                        <p className="text-xs sm:text-sm font-medium">{status.message}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                <button
-                  type="submit"
-                  disabled={loading || otp.length !== 4}
-                  className="btn-gradient-success w-full disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {samplingProgress ? `Sampling ${samplingProgress.current}/${samplingProgress.total}...` : 'Processing...'}
-                    </div>
-                  ) : (
-                    <>
-                      <KeyRound className="w-5 h-5" />
-                      Submit Attendance
-                    </>
-                  )}
-                </button>
-                
-                <p className="text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    Smart Geofencing Active
-                  </span>
-                  {locationAccuracy && (
-                    <span className="text-[10px] opacity-75">
-                      Your current accuracy: {Math.round(locationAccuracy)}m
+                  <button
+                    type="submit"
+                    disabled={loading || otp.length !== 4}
+                    className="btn-gradient-success w-full disabled:opacity-50 flex items-center justify-center gap-2 font-bold text-sm sm:text-base py-3.5"
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>{samplingProgress ? `Sampling GPS (${samplingProgress.current}/${samplingProgress.total})...` : 'Verifying Presence...'}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <KeyRound className="w-5 h-5" />
+                        <span>Submit Attendance</span>
+                      </>
+                    )}
+                  </button>
+                  
+                  <div className="text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-0.5 pt-1">
+                    <span className="flex items-center gap-1 font-medium">
+                      <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                      Smart Geofencing Verification
                     </span>
-                  )}
-                </p>
-              </form>
+                    {locationAccuracy && (
+                      <span className="text-[10px] opacity-75">
+                        Current accuracy: ~{Math.round(locationAccuracy)}m
+                      </span>
+                    )}
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section>
-          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
-            <History className="w-5 h-5 text-indigo-600" />
-            Recent Attendance
-          </h2>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto dark:bg-slate-800 dark:border-slate-700">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50 text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100">
-                  <th className="py-3 px-3 sm:px-6">Date & Time</th>
-                  <th className="py-3 px-3 sm:px-6">Teacher</th>
-                  <th className="py-3 px-3 sm:px-6 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {history.length > 0 ? (
-                  history.map((record) => (
-                    <tr key={record.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 sm:py-4 px-3 sm:px-6">
-                        <div className="font-medium text-[--color-text-primary] text-sm">
-                          {format(new Date(record.created_at), 'MMM dd, yyyy')}
-                        </div>
-                        <div className="text-xs text-[--color-text-secondary]">
-                          {format(new Date(record.created_at), 'HH:mm')}
-                        </div>
-                      </td>
-                      <td className="py-3 sm:py-4 px-3 sm:px-6 text-[--color-text-secondary] text-sm max-w-[120px] truncate">
-                        {record.attendance_sessions?.teacher?.name || 'Unknown'}
-                      </td>
-                      <td className="py-3 sm:py-4 px-3 sm:px-6 text-right">
-                        <span className="badge badge--success">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Present
-                        </span>
+          {/* History Section */}
+          <section>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+              <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <span>Recent Attendance</span>
+            </h2>
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-x-auto touch-scroll">
+              <table className="w-full text-left min-w-[320px]">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-200 dark:border-slate-700">
+                    <th className="py-3 px-3 sm:px-5">Date & Time</th>
+                    <th className="py-3 px-3 sm:px-5">Instructor</th>
+                    <th className="py-3 px-3 sm:px-5 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-xs sm:text-sm">
+                  {history.length > 0 ? (
+                    history.map((record) => (
+                      <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
+                        <td className="py-3 px-3 sm:px-5">
+                          <div className="font-medium text-[--color-text-primary]">
+                            {format(new Date(record.created_at), 'MMM dd, yyyy')}
+                          </div>
+                          <div className="text-[11px] text-[--color-text-secondary]">
+                            {format(new Date(record.created_at), 'hh:mm a')}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 sm:px-5 text-[--color-text-secondary] max-w-[120px] truncate">
+                          {record.attendance_sessions?.teacher?.name || 'Faculty'}
+                        </td>
+                        <td className="py-3 px-3 sm:px-5 text-right">
+                          <span className="badge badge--success text-[11px]">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Present
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-10 text-center text-[--color-text-secondary] italic">
+                        No attendance records for this class yet.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="py-12 text-center text-[--color-text-secondary] italic">
-                      No attendance records found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
 
-      <div className="space-y-6">
-        <div className="glass-card">
-          <h3 className="text-[--color-text-secondary] text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Attendance Stats
-          </h3>
-          
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="relative w-32 h-32 flex items-center justify-center mb-4">
-              <svg className="w-full h-full transform -rotate-90">
-                {/* Background circle */}
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="58"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="transparent"
-                  className="text-[--color-text-secondary]/30"
-                />
-                {/* Red segment for absent */}
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="58"
-                  stroke="#FF4D6D"
-                  strokeWidth="8"
-                  fill="transparent"
-                  strokeDasharray={364.4}
-                  strokeDashoffset={0}
-                  className="transition-all duration-1000 ease-out"
-                  style={{
-                    strokeDasharray: `${stats.total > 0 ? (364.4 * (stats.total - stats.attended)) / stats.total : 0} 364.4`
-                  }}
-                />
-                {/* Green segment for present */}
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="58"
-                  stroke="#00D4AA"
-                  strokeWidth="8"
-                  fill="transparent"
-                  strokeDasharray={364.4}
-                  className="transition-all duration-1000 ease-out"
-                  style={{
-                    strokeDasharray: `${stats.total > 0 ? (364.4 * stats.attended) / stats.total : 0} 364.4`,
-                    strokeDashoffset: `-${stats.total > 0 ? (364.4 * (stats.total - stats.attended)) / stats.total : 0}`
-                  }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-black text-[--color-text-primary]">{stats.percentage}%</span>
-                <span className="text-[10px] text-[--color-text-secondary] font-bold uppercase">Overall</span>
+        {/* Stats Sidebar */}
+        <div className="space-y-4 sm:space-y-6">
+          <div className="glass-card">
+            <h3 className="text-[--color-text-secondary] text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Attendance Stats</span>
+            </h3>
+            
+            <div className="flex flex-col items-center text-center">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center mb-3">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="transparent"
+                    className="text-slate-200 dark:text-slate-700"
+                  />
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    stroke="#10b981"
+                    strokeWidth="8"
+                    fill="transparent"
+                    strokeDasharray={351.8}
+                    style={{
+                      strokeDasharray: `${stats.total > 0 ? (351.8 * stats.attended) / stats.total : 0} 351.8`
+                    }}
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl sm:text-3xl font-black text-[--color-text-primary]">{stats.percentage}%</span>
+                  <span className="text-[10px] text-[--color-text-secondary] font-bold uppercase">Rate</span>
+                </div>
               </div>
+
+              <div className="flex gap-4 text-xs font-semibold">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                  <span className="text-[--color-text-secondary]">Present: {stats.attended}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+                  <span className="text-[--color-text-secondary]">Absent: {Math.max(0, stats.total - stats.attended)}</span>
+                </div>
+              </div>
+              <p className="text-[--color-text-secondary] text-xs mt-2">
+                Attended <span className="font-bold text-[--color-text-primary]">{stats.attended}</span> of <span className="font-bold text-[--color-text-primary]">{stats.total}</span> total classes.
+              </p>
             </div>
-            <div className="flex gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#00D4AA]"></div>
-                <span className="text-[--color-text-secondary]">Present: {stats.attended}</span>
+
+            {stats.percentage < 75 && stats.total > 0 && (
+              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-xl p-3.5 mt-4">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wide">Short Attendance</h4>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
+                      Your attendance is below the mandatory 75% threshold.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#FF4D6D]"></div>
-                <span className="text-[--color-text-secondary]">Absent: {stats.total - stats.attended}</span>
-              </div>
-            </div>
-            <p className="text-[--color-text-secondary] text-sm mt-2">
-              You have been present for <span className="font-bold text-[--color-text-primary]">{stats.attended}</span> out of <span className="font-bold text-[--color-text-primary]">{stats.total}</span> classes.
+            )}
+          </div>
+
+          <div className="glass-card border-blue-100 dark:border-blue-900/40">
+            <h3 className="font-bold text-sm text-[--color-text-primary] mb-1 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Smart Geofencing</span>
+            </h3>
+            <p className="text-[--color-text-secondary] text-xs leading-relaxed">
+              Attendance verification adjusts to indoor GPS signal quality while preventing proxies from outside classroom boundaries.
             </p>
           </div>
-
-          {stats.percentage < 75 && (
-            <div className="relative group overflow-hidden bg-gradient-to-br from-amber-50 to-red-50 border border-amber-200 rounded-2xl p-5 mt-6">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform">
-                 <AlertCircle className="w-16 h-16 text-red-600" />
-              </div>
-              <div className="relative z-10 flex items-start gap-3">
-                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-amber-900 uppercase tracking-wide">Danger Zone: Low Attendance</h4>
-                  <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                    Your attendance is below the **75% institutional requirement**. 
-                    Falling below this limit may result in being barred from examinations.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="glass-card bg-gradient-to-br from-[--color-primary]/20 to-[--color-secondary]/20 border border-[--color-primary]/30">
-          <h3 className="font-bold text-[--color-text-primary] mb-2">Smart Geofencing</h3>
-          <p className="text-[--color-text-secondary] text-sm leading-relaxed">
-            The system automatically adjusts the attendance radius based on GPS accuracy. 
-            This ensures you can mark attendance even with poor indoor signals, 
-            while blocking those in nearby buildings or hostels.
-          </p>
         </div>
       </div>
-    </div>
     </>
   );
 }
