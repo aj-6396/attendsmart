@@ -54,13 +54,15 @@ ClassMark is built on a **Zero-Trust Physical Presence** model designed to solve
 
 ### 2. Adaptive Geo-Fencing (Haversine Algorithm)
 - Calculates geodesic great-circle distance between teacher and student coordinates:
-  $$d = 2R \cdot \operatorname{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)$$
-  where $R = 6,371,000\text{ m}$.
+  ```
+  d = 2R · atan2(√a, √(1 - a))
+  ```
+  *(where Earth's mean radius R = 6,371,000 meters)*
 - **Dynamic Indoor Radius Calibration**: Adjusts acceptable proximity based on real-world GPS signal degradation inside concrete classrooms:
-  - GPS Accuracy $\le 20\text{ m} \longrightarrow \text{Radius} = 40\text{ m}$
-  - GPS Accuracy $\le 40\text{ m} \longrightarrow \text{Radius} = 60\text{ m}$
-  - GPS Accuracy $\le 60\text{ m} \longrightarrow \text{Radius} = 80\text{ m}$
-  - GPS Accuracy $> 60\text{ m} \longrightarrow \text{Radius} = 100\text{ m}$
+  - GPS Accuracy ≤ 20 m → **Radius = 40 m**
+  - GPS Accuracy ≤ 40 m → **Radius = 60 m**
+  - GPS Accuracy ≤ 60 m → **Radius = 80 m**
+  - GPS Accuracy > 60 m → **Radius = 100 m**
 
 ### 3. Server-Side GPS Spoofing & Mock Location Detection
 Before recording attendance, the server analyzes raw coordinate sample sequences:
