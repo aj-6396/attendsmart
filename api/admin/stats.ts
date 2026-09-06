@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAuthenticatedUser, getSupabase } from '../lib/auth.js';
+import { getAuthenticatedUser, getSupabase } from '../_lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
