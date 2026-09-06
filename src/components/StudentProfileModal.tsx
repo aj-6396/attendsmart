@@ -567,26 +567,21 @@ export default function StudentProfileModal({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800 flex-wrap gap-2">
-                    {prof.created_at && (
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                    {prof.created_at ? (
                       <span className="text-[10px] text-slate-400 font-medium">
                         Registered: {format(new Date(prof.created_at), 'MMM dd, yyyy')}
                       </span>
+                    ) : (
+                      <div />
                     )}
 
-                    <div className="flex items-center gap-2 ml-auto flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('calendar')}
-                        className="px-3.5 py-2 text-xs font-bold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 rounded-xl transition-colors flex items-center gap-1.5"
-                      >
-                        <CalendarIcon className="w-3.5 h-3.5" /> Attendance Calendar
-                      </button>
+                    <div className="flex items-center gap-2">
                       {isEditable && (
                         <button
                           type="button"
                           onClick={() => setIsEditing(true)}
-                          className="btn-gradient px-4 py-2 text-xs font-bold flex items-center gap-1.5"
+                          className="btn-gradient px-4 py-2 text-xs font-bold flex items-center gap-1.5 shadow-sm"
                         >
                           <Edit3 className="w-3.5 h-3.5" /> Edit Profile
                         </button>
@@ -718,24 +713,15 @@ export default function StudentProfileModal({
                               }
                             }}
                             className={`
-                              h-11 sm:h-12 rounded-xl flex flex-col items-center justify-center relative transition-all text-xs font-semibold border
+                              h-10 sm:h-11 rounded-xl flex items-center justify-center relative transition-all text-xs font-bold border
                               ${badgeBg}
                               ${!isCurrentMonthDay ? 'opacity-30' : 'opacity-100'}
                               ${isTodayDate ? 'ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-900' : ''}
                               ${isSelected ? 'scale-105 ring-2 ring-black dark:ring-white' : ''}
-                              ${dayStatus && dayStatus.sessionsCount > 0 ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
+                              ${dayStatus && dayStatus.sessionsCount > 0 ? 'cursor-pointer hover:scale-105 shadow-sm' : 'cursor-default'}
                             `}
                           >
                             <span>{format(dayDate, 'd')}</span>
-                            {dayStatus?.status === 'present' && (
-                              <span className="text-[8px] uppercase tracking-tighter font-black opacity-90 leading-none">Present</span>
-                            )}
-                            {dayStatus?.status === 'absent' && (
-                              <span className="text-[8px] uppercase tracking-tighter font-black opacity-90 leading-none">Absent</span>
-                            )}
-                            {dayStatus?.status === 'partial' && (
-                              <span className="text-[8px] uppercase tracking-tighter font-black opacity-90 leading-none">Partial</span>
-                            )}
                           </button>
                         );
                       })}
