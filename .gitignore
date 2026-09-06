@@ -10,3 +10,5 @@ server.ts
 .vercel
 .env.local
 dev-dist/
+*-firebase-adminsdk-*.json
+*.pem
