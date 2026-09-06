@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone, Trash2 } from 'lucide-react';
+import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone, Trash2, User } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -16,6 +16,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ThemeToggle from './ThemeToggle';
 import { downloadFile } from '../lib/fileDownload';
+import StudentProfileModal from './StudentProfileModal';
 
 interface Session {
   id: string;
@@ -52,6 +53,11 @@ interface StudentStats {
   exam_roll_no?: string;
   semester?: string;
   major_subject?: string;
+  course?: string;
+  batch?: string;
+  section?: string;
+  device_id?: string;
+  profile?: any;
   total_sessions: number;
   attended_sessions: number;
   attendance_percentage: number;
@@ -72,6 +78,7 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [selectedPastSession, setSelectedPastSession] = useState<Session | null>(null);
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+  const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<any | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
@@ -538,7 +545,11 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
               exam_roll_no,
               semester,
               major_subject,
-              course
+              course,
+              batch,
+              section,
+              device_id,
+              created_at
             )
           )
         `)
@@ -591,6 +602,11 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
           exam_roll_no: student.profile?.exam_roll_no,
           semester: student.profile?.semester,
           major_subject: student.profile?.major_subject,
+          course: student.profile?.course,
+          batch: student.profile?.batch,
+          section: student.profile?.section,
+          device_id: student.profile?.device_id,
+          profile: student.profile,
           total_sessions: totalCount,
           attended_sessions: attendedCount,
           attendance_percentage: totalCount > 0 ? (attendedCount / totalCount) * 100 : 0
@@ -1276,6 +1292,9 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                                         Mark Present
                                      </button>
                                   )}
+                                  <button onClick={() => setSelectedStudentForProfile(student)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="View & Edit Student Profile">
+                                     <User className="w-5 h-5" />
+                                  </button>
                                   <button onClick={() => handleResetDevice(student.id)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors" title="Reset Device Link">
                                      <Smartphone className="w-5 h-5" />
                                   </button>
@@ -1290,6 +1309,17 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
                     </table>
                   </div>
                 </div>
+
+                {/* Student Profile & Correction Modal */}
+                <StudentProfileModal
+                  isOpen={!!selectedStudentForProfile}
+                  onClose={() => setSelectedStudentForProfile(null)}
+                  student={selectedStudentForProfile}
+                  isEditable={true}
+                  onSaved={() => {
+                    fetchAllStudentStats();
+                  }}
+                />
 
                 {/* Password Reset Modal (Redesigned) */}
                 <AnimatePresence>
