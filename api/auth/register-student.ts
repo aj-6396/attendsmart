@@ -1,5 +1,5 @@
 // api/auth/register-student.ts
-import { getSupabase } from "../lib/auth.js";
+import { getSupabase } from "../_lib/auth.js";
 
 export default async function handler(req: any, res: any) {
   // 1. Ensure it only accepts POST requests

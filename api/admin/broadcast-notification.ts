@@ -1,5 +1,5 @@
-import { getAuthenticatedUser, getSupabase } from '../lib/auth.js';
-import crypto from 'crypto';
+import { getAuthenticatedUser, getSupabase } from '../_lib/auth.js';
+import { createSign } from 'crypto';
 
 // Helper to get Google OAuth2 Access Token from Service Account Key
 async function getGoogleAccessToken(clientEmail: string, privateKey: string): Promise<string | null> {
@@ -15,7 +15,8 @@ async function getGoogleAccessToken(clientEmail: string, privateKey: string): Pr
       iat: now,
     })).toString('base64url');
 
-    const sign = crypto.createSign('RSA-SHA256');
+    const sign = createSign('RSA-SHA256');
+
     sign.update(`${header}.${payload}`);
     const signature = sign.sign(formattedPrivateKey, 'base64url');
     const jwt = `${header}.${payload}.${signature}`;

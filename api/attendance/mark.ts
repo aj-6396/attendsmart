@@ -4,7 +4,7 @@
  * distribution, or use is strictly prohibited.
  */
 
-import { getAuthenticatedUser, getSupabase } from "../lib/auth.js";
+import { getAuthenticatedUser, getSupabase } from "../_lib/auth.js";
 
 /**
  * GPS Spoofing Detection
