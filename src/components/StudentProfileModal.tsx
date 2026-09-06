@@ -567,14 +567,21 @@ export default function StudentProfileModal({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800 flex-wrap gap-2">
                     {prof.created_at && (
                       <span className="text-[10px] text-slate-400 font-medium">
                         Registered: {format(new Date(prof.created_at), 'MMM dd, yyyy')}
                       </span>
                     )}
 
-                    <div className="flex items-center gap-2 ml-auto">
+                    <div className="flex items-center gap-2 ml-auto flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('calendar')}
+                        className="px-3.5 py-2 text-xs font-bold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 rounded-xl transition-colors flex items-center gap-1.5"
+                      >
+                        <CalendarIcon className="w-3.5 h-3.5" /> Attendance Calendar
+                      </button>
                       {isEditable && (
                         <button
                           type="button"
