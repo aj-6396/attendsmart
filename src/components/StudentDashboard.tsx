@@ -8,13 +8,14 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap } from 'lucide-react';
+import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap, User } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { getDeviceFingerprint } from '../lib/device';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 import { notifySessionStarted, notifyAttendanceMarked, notifyAbsentInClass, schedule5PMAttendanceNotification } from '../lib/notifications';
 import { queueOfflineAttendance, syncOfflineQueue, getOfflineQueueCount } from '../lib/offlineQueue';
+import StudentProfileModal from './StudentProfileModal';
 
 interface AttendanceRecord {
   id: string;
@@ -43,6 +44,7 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
   const [locationPermission, setLocationPermission] = useState<string | null>(null);
   const [showLowAttendanceToast, setShowLowAttendanceToast] = useState(false);
   const [toastDismissed, setToastDismissed] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     // Check initial location permission status
@@ -348,15 +350,21 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
           )}
         </AnimatePresence>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <h2 className="text-2xl font-bold flex items-center gap-2 text-[--color-text-primary]">
             <Folder className="w-6 h-6 text-[--color-primary]" />
             My Enrolled Classes
           </h2>
-          <button onClick={() => setShowJoinClass(true)} className="btn-gradient px-4 py-2 flex items-center gap-2 w-auto h-10 text-sm">
-            <Plus className="w-4 h-4" />
-            Join Class
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowProfileModal(true)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-semibold text-sm flex items-center gap-2 h-10 border border-slate-200 dark:border-slate-700 transition-colors">
+              <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              My Profile
+            </button>
+            <button onClick={() => setShowJoinClass(true)} className="btn-gradient px-4 py-2 flex items-center gap-2 w-auto h-10 text-sm">
+              <Plus className="w-4 h-4" />
+              Join Class
+            </button>
+          </div>
         </div>
 
         {showJoinClass && (
@@ -485,6 +493,13 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
                   <p className="text-xs text-[--color-text-secondary] font-medium uppercase tracking-wide">Exam Roll No</p>
                   <p className="text-lg font-mono font-bold text-[--color-text-primary] mt-1">{profile.exam_roll_no || 'N/A'}</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(true)}
+                  className="w-full py-1.5 px-3 mt-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <User className="w-3.5 h-3.5" /> View Full Profile
+                </button>
               </div>
             </div>
           </div>
@@ -762,6 +777,26 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
         </div>
       </div>
     </div>
+
+    <StudentProfileModal
+      isOpen={showProfileModal}
+      onClose={() => setShowProfileModal(false)}
+      student={{
+        id: user.id,
+        name: profile.name,
+        enrollment_no: profile.enrollment_no,
+        exam_roll_no: profile.exam_roll_no,
+        course: profile.course,
+        semester: profile.semester,
+        major_subject: profile.major_subject,
+        batch: profile.batch,
+        section: profile.section,
+        device_id: profile.device_id,
+        created_at: profile.created_at,
+        profile
+      }}
+      isEditable={false}
+    />
     </>
   );
 }

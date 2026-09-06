@@ -6,7 +6,7 @@ import {
   UserPlus, Users, ShieldCheck, Loader2, AlertCircle, CheckCircle2, 
   Key, Search, X, BarChart3, TrendingUp, Calendar, 
   ArrowUpRight, ArrowDownRight, Folder, Trash2, 
-  RefreshCw, LayoutDashboard, UserCog, GraduationCap, Download, LogOut, Smartphone
+  RefreshCw, LayoutDashboard, UserCog, GraduationCap, Download, LogOut, Smartphone, User
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
@@ -15,6 +15,7 @@ import ThemeToggle from './ThemeToggle';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadFile } from '../lib/fileDownload';
+import StudentProfileModal from './StudentProfileModal';
 
 type ActiveTab = 'overview' | 'teachers' | 'students' | 'classes';
 
@@ -45,6 +46,7 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   const [teacherId, setTeacherId] = useState('');
   
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+  const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<any | null>(null);
   const [newPassword, setNewPassword] = useState('');
 
   // Export System Report as PDF
@@ -622,6 +624,7 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
                                 </td>
                                 <td className="px-8 py-5 font-mono text-xs text-slate-500">{prof?.enrollment_no || 'N/A'}</td>
                                 <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
+                                  <button onClick={() => setSelectedStudentForProfile(item)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="View & Edit Student Profile"><User className="w-5 h-5" /></button>
                                   <button onClick={() => handleResetDevice(item.id)} className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all" title="Reset Device Link"><Smartphone className="w-5 h-5" /></button>
                                   <button onClick={() => setResettingUserId(item.id)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Access Recovery"><Key className="w-5 h-5" /></button>
                                 </td>
@@ -703,6 +706,17 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
               </motion.div>
            </div>
         )}
+
+        {/* Student Profile & Correction Modal */}
+        <StudentProfileModal
+          isOpen={!!selectedStudentForProfile}
+          onClose={() => setSelectedStudentForProfile(null)}
+          student={selectedStudentForProfile}
+          isEditable={true}
+          onSaved={() => {
+            fetchStudents(page, searchQuery);
+          }}
+        />
 
         {resettingUserId && (
            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl">
