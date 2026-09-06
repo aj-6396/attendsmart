@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "807082052143",
+    "project_id": "classmark",
+    "storage_bucket": "classmark.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:807082052143:android:be697a729090ab269354da",
+        "android_client_info": {
+          "package_name": "com.classmark.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDhIcqPEFtbQxWkPSb_iQnIg05v4XQybA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
