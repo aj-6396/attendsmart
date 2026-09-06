@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap, User } from 'lucide-react';
+import { MapPin, Folder, Plus, ArrowLeft as ArrowLeftIcon, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, History, BarChart3, ShieldCheck, KeyRound, GraduationCap, User, Bell } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { getDeviceFingerprint } from '../lib/device';
 import { format } from 'date-fns';
@@ -16,6 +16,7 @@ import { cn } from '../lib/utils';
 import { notifySessionStarted, notifyAttendanceMarked, notifyAbsentInClass, schedule5PMAttendanceNotification } from '../lib/notifications';
 import { queueOfflineAttendance, syncOfflineQueue, getOfflineQueueCount } from '../lib/offlineQueue';
 import StudentProfileModal from './StudentProfileModal';
+import { initPushNotifications } from '../lib/push';
 
 interface AttendanceRecord {
   id: string;
@@ -45,6 +46,42 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
   const [showLowAttendanceToast, setShowLowAttendanceToast] = useState(false);
   const [toastDismissed, setToastDismissed] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [broadcastBanner, setBroadcastBanner] = useState<{ title: string; message: string } | null>(null);
+
+  // Initialize Capacitor Push Notifications on Native App Startup
+  useEffect(() => {
+    initPushNotifications((notif) => {
+      if (notif?.title && notif?.body) {
+        setBroadcastBanner({ title: notif.title, message: notif.body });
+      }
+    });
+  }, []);
+
+  // Listen for Realtime Announcements from Supabase
+  useEffect(() => {
+    const channel = supabase
+      .channel('announcements_realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'announcements',
+      }, (payload: any) => {
+        if (payload.new) {
+          const role = payload.new.target_role;
+          if (role === 'all' || role === 'student') {
+            setBroadcastBanner({
+              title: payload.new.title,
+              message: payload.new.message,
+            });
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     // Check initial location permission status
@@ -343,6 +380,22 @@ export default function StudentDashboard({ user, profile, darkMode, toggleDarkMo
     return (
       <div className="space-y-6">
         <AnimatePresence>
+          {broadcastBanner && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="p-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-white/10 rounded-xl mt-0.5">
+                  <Bell className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white leading-tight">{broadcastBanner.title}</h4>
+                  <p className="text-xs text-white/90 mt-1 leading-relaxed">{broadcastBanner.message}</p>
+                </div>
+              </div>
+              <button onClick={() => setBroadcastBanner(null)} className="text-white/70 hover:text-white p-1">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </motion.div>
+          )}
           {status.type && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className={status.type === 'success' ? "alert alert--success" : "alert alert--error"}>
               <p className="text-sm font-medium">{status.message}</p>

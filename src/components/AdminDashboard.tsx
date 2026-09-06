@@ -6,7 +6,8 @@ import {
   UserPlus, Users, ShieldCheck, Loader2, AlertCircle, CheckCircle2, 
   Key, Search, X, BarChart3, TrendingUp, Calendar, 
   ArrowUpRight, ArrowDownRight, Folder, Trash2, 
-  RefreshCw, LayoutDashboard, UserCog, GraduationCap, Download, LogOut, Smartphone, User
+  RefreshCw, LayoutDashboard, UserCog, GraduationCap, Download, LogOut, Smartphone, User,
+  Bell, Send, Radio
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
@@ -45,6 +46,11 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
   const [teacherPassword, setTeacherPassword] = useState('');
   const [teacherId, setTeacherId] = useState('');
   
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [targetRole, setTargetRole] = useState<'all' | 'student' | 'teacher'>('all');
+
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<any | null>(null);
   const [newPassword, setNewPassword] = useState('');
@@ -153,6 +159,44 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
     } catch (err: any) {
       console.error('Export CSV error:', err);
       setError('Failed to export CSV file.');
+    }
+  };
+
+  const handleSendBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastBody.trim()) {
+      setError('Title and Body are required.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      const response = await authFetch('/api/admin/broadcast-notification', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: broadcastTitle,
+          body: broadcastBody,
+          targetRole,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to dispatch broadcast notification');
+      }
+
+      setSuccess('Broadcast Push Notification dispatched successfully!');
+      setShowBroadcastModal(false);
+      setBroadcastTitle('');
+      setBroadcastBody('');
+    } catch (err: any) {
+      console.error('Error sending broadcast:', err);
+      setError(err.message || 'Failed to dispatch broadcast notification.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -583,13 +627,22 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
                   <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-100 rounded-[1.25rem] shadow-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all font-medium text-slate-700" placeholder={`Search ${activeTab}...`} />
                 </div>
                 <div className="flex items-center gap-2">
-                   <button onClick={exportActiveTabCSV} className="px-4 py-3 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-2xl hover:bg-slate-50 flex items-center gap-2 shadow-sm">
-                      <Download className="w-4 h-4 text-indigo-600" />
-                      Export {activeTab.toUpperCase()} CSV
-                   </button>
-                   {activeTab === 'teachers' && (
-                      <button onClick={() => setShowCreateTeacher(true)} className="btn-gradient px-7 py-3.5 flex items-center gap-2 shadow-lg shadow-indigo-100"><UserPlus className="w-5 h-5" />New Teacher</button>
-                   )}
+                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <button
+                      onClick={() => setShowBroadcastModal(true)}
+                      className="px-4 py-3 bg-indigo-600 text-white font-bold text-xs rounded-2xl hover:bg-indigo-700 flex items-center gap-2 shadow-md transition-all"
+                    >
+                       <Bell className="w-4 h-4" />
+                       Broadcast Push
+                    </button>
+                    <button onClick={exportActiveTabCSV} className="px-4 py-3 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-2xl hover:bg-slate-50 flex items-center gap-2 shadow-sm">
+                       <Download className="w-4 h-4 text-indigo-600" />
+                       Export {activeTab.toUpperCase()} CSV
+                    </button>
+                    {activeTab === 'teachers' && (
+                       <button onClick={() => setShowCreateTeacher(true)} className="btn-gradient px-7 py-3.5 flex items-center gap-2 shadow-lg shadow-indigo-100"><UserPlus className="w-5 h-5" />New Teacher</button>
+                    )}
+                 </div>
                 </div>
              </div>
 
@@ -717,6 +770,109 @@ export default function AdminDashboard({ user, onLogout, darkMode, toggleDarkMod
             fetchStudents(page, searchQuery);
           }}
         />
+
+        {/* Broadcast Notification Modal */}
+        {showBroadcastModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xl">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-lg p-6 sm:p-10 border border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-100 text-white">
+                  <Bell className="w-7 h-7" />
+                </div>
+                <button onClick={() => setShowBroadcastModal(false)} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-slate-400">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">Broadcast Push Notification</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mb-6">Send a real-time push announcement directly to users' phones & app dashboards.</p>
+
+              <form onSubmit={handleSendBroadcast} className="space-y-4">
+                <div className="field-group">
+                  <label className="field-label">Target Audience</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTargetRole('all')}
+                      className={cn(
+                        "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border",
+                        targetRole === 'all'
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                      )}
+                    >
+                      <Radio className="w-3.5 h-3.5" /> All Users
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTargetRole('student')}
+                      className={cn(
+                        "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border",
+                        targetRole === 'student'
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                      )}
+                    >
+                      <GraduationCap className="w-3.5 h-3.5" /> Students
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTargetRole('teacher')}
+                      className={cn(
+                        "py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border",
+                        targetRole === 'teacher'
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                      )}
+                    >
+                      <UserCog className="w-3.5 h-3.5" /> Teachers
+                    </button>
+                  </div>
+                </div>
+
+                <div className="field-group">
+                  <label className="field-label">Notification Title</label>
+                  <input
+                    type="text"
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                    className="field-input text-sm"
+                    placeholder="e.g. Exam Schedule Announcement"
+                    required
+                  />
+                </div>
+
+                <div className="field-group">
+                  <label className="field-label">Notification Message</label>
+                  <textarea
+                    value={broadcastBody}
+                    onChange={(e) => setBroadcastBody(e.target.value)}
+                    className="field-input text-sm min-h-[100px] resize-none"
+                    placeholder="Type your push notification announcement here..."
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowBroadcastModal(false)}
+                    className="px-4 py-3 text-xs font-bold text-slate-500 hover:text-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-gradient px-6 py-3 text-xs font-bold flex items-center gap-2"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <><Send className="w-4 h-4" /> Send Push Notification</>}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
 
         {resettingUserId && (
            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl">
