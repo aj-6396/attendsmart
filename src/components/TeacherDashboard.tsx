@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { authFetch } from '../lib/authFetch';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone, Trash2, User } from 'lucide-react';
+import { Plus, Users, Folder, Link, LogOut, ArrowLeft as ArrowLeftIcon, Clock, MapPin, RefreshCw, CheckCircle2, XCircle, Download, BarChart3, History, Loader2, AlertCircle, Key, Search, X, Smartphone, Trash2, User, Bell } from 'lucide-react';
 import { getAveragedPosition } from '../lib/geo';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -17,6 +17,7 @@ import autoTable from 'jspdf-autotable';
 import ThemeToggle from './ThemeToggle';
 import { downloadFile } from '../lib/fileDownload';
 import StudentProfileModal from './StudentProfileModal';
+import { initPushNotifications } from '../lib/push';
 
 interface Session {
   id: string;
@@ -84,6 +85,42 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [samplingProgress, setSamplingProgress] = useState<{ current: number; total: number } | null>(null);
   const [locationPermission, setLocationPermission] = useState<string | null>(null);
+  const [broadcastBanner, setBroadcastBanner] = useState<{ title: string; message: string } | null>(null);
+
+  // Initialize Capacitor Push Notifications on Native App Startup
+  useEffect(() => {
+    initPushNotifications((notif) => {
+      if (notif?.title && notif?.body) {
+        setBroadcastBanner({ title: notif.title, message: notif.body });
+      }
+    });
+  }, []);
+
+  // Listen for Realtime Announcements from Supabase
+  useEffect(() => {
+    const channel = supabase
+      .channel('announcements_realtime_teacher')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'announcements',
+      }, (payload: any) => {
+        if (payload.new) {
+          const role = payload.new.target_role;
+          if (role === 'all' || role === 'teacher') {
+            setBroadcastBanner({
+              title: payload.new.title,
+              message: payload.new.message,
+            });
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     // Check initial location permission status
@@ -820,11 +857,30 @@ export default function TeacherDashboard({ user, profile, onLogout, darkMode, to
 
       {!activeClass ? (
         <motion.div 
-          key="class-list"
+          key="classes-list"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="space-y-6"
         >
+          <AnimatePresence>
+            {broadcastBanner && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="p-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-white/10 rounded-xl mt-0.5">
+                    <Bell className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white leading-tight">{broadcastBanner.title}</h4>
+                    <p className="text-xs text-white/90 mt-1 leading-relaxed">{broadcastBanner.message}</p>
+                  </div>
+                </div>
+                <button onClick={() => setBroadcastBanner(null)} className="text-white/70 hover:text-white p-1">
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900">
               <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">

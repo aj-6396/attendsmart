@@ -124,3 +124,37 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE classes;
   END IF;
 END $$;
+
+-- 7. Announcements Table for Broadcast Notifications
+CREATE TABLE IF NOT EXISTS announcements (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  target_role TEXT DEFAULT 'all',
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Announcements readable by authenticated" ON announcements;
+CREATE POLICY "Announcements readable by authenticated" ON announcements FOR SELECT USING (
+  auth.role() = 'authenticated'
+);
+
+DROP POLICY IF EXISTS "Admins can create announcements" ON announcements;
+CREATE POLICY "Admins can create announcements" ON announcements FOR INSERT WITH CHECK (
+  is_admin()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'announcements'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE announcements;
+  END IF;
+END $$;
