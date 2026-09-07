@@ -38,15 +38,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build APK with Gradle
+      - name: Build Release APK with Gradle
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
-      - name: Upload APK Artifact
+      - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ClassMark-App-v1.0.3
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: ClassMark-Release-v1.0.3
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
+
