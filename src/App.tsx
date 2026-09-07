@@ -20,6 +20,7 @@ import TeacherLogin from './components/TeacherLogin';
 import ConsentModal from './components/ConsentModal';
 import ThemeToggle from './components/ThemeToggle';
 import AboutPage from './components/AboutPage';
+import UpdateModal from './components/UpdateModal';
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/react"
 
@@ -411,6 +412,7 @@ export default function App() {
     return (
       <>
         {renderToastContainer()}
+        <UpdateModal />
         <div className="page animated-bg">
           <div className="dot-grid" />
 
@@ -762,6 +764,7 @@ export default function App() {
       <SpeedInsights />
       <Analytics />
       {renderToastContainer()}
+      <UpdateModal />
       <div className="page animated-bg">
         <div className="dot-grid" />
         {/* Only show global header for students or logged-out users */}
