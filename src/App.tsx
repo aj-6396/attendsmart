@@ -164,11 +164,20 @@ export default function App() {
   const [batch, setBatch] = useState('');
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 4000);
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timer);
       setSession(session);
       if (session) fetchProfile(session.user.id);
       else setLoading(false);
+    }).catch((err) => {
+      console.warn('Session get error, proceeding to login:', err);
+      clearTimeout(timer);
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -182,7 +191,10 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
