@@ -40,15 +40,15 @@ jobs:
 
       - name: Ensure Signing Keystore
         run: |
-          if [ ! -f android/app/release.keystore ]; then
-            keytool -genkeypair -v -keystore android/app/release.keystore -alias classmark -keyalg RSA -keysize 2048 -validity 10000 -storepass classmark123 -keypass classmark123 -dname "CN=ClassMark, OU=Engineering, O=ClassMark, L=Delhi, S=Delhi, C=IN"
+          if [ ! -f android/app/release.jks ]; then
+            keytool -genkeypair -v -keystore android/app/release.jks -alias classmark -keyalg RSA -keysize 2048 -validity 10000 -storepass classmark123 -keypass classmark123 -dname "CN=ClassMark, OU=ClassMark, O=ClassMark, L=Delhi, ST=Delhi, C=IN"
           fi
 
       - name: Build Release APK with Gradle
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --stacktrace
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4

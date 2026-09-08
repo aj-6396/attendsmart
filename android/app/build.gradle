@@ -18,8 +18,8 @@ android {
     }
     signingConfigs {
         release {
-            if (file('release.keystore').exists()) {
-                storeFile file('release.keystore')
+            if (file('release.jks').exists()) {
+                storeFile file('release.jks')
                 storePassword 'classmark123'
                 keyAlias 'classmark'
                 keyPassword 'classmark123'
@@ -28,7 +28,7 @@ android {
     }
     buildTypes {
         release {
-            if (file('release.keystore').exists()) {
+            if (file('release.jks').exists()) {
                 signingConfig signingConfigs.release
             } else {
                 signingConfig signingConfigs.debug
