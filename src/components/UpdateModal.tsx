@@ -4,7 +4,7 @@ import { Download, Sparkles, X, ArrowUpCircle, ExternalLink } from 'lucide-react
 import { Capacitor } from '@capacitor/core';
 
 // Current installed app version
-export const CURRENT_VERSION = '1.0.3';
+export const CURRENT_VERSION = '1.0.6';
 
 interface ReleaseInfo {
   version: string;

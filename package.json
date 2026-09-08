@@ -2,7 +2,7 @@
   "name": "classmark",
   "author": "Ambuj Singh <https://aj-7portfolio.vercel.app/>",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.6",
   "license": "Proprietary",
   "type": "module",
   "scripts": {
