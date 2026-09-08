@@ -47,7 +47,7 @@ jobs:
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ClassMark-Release-v1.0.3
+          name: ClassMark-Release-APK
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
 
