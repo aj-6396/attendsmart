@@ -38,6 +38,12 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Ensure Signing Keystore
+        run: |
+          if [ ! -f android/app/release.keystore ]; then
+            keytool -genkeypair -v -keystore android/app/release.keystore -alias classmark -keyalg RSA -keysize 2048 -validity 10000 -storepass classmark123 -keypass classmark123 -dname "CN=ClassMark, OU=Engineering, O=ClassMark, L=Delhi, S=Delhi, C=IN"
+          fi
+
       - name: Build Release APK with Gradle
         run: |
           cd android
